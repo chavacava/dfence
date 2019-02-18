@@ -1,0 +1,12 @@
+[
+    {
+        "module":"github.com/chavacava/cmd/",
+        "kind":"allow",
+        "modules":"github.com/chavacava/internal/,github.com/chavacava/cmd/"
+    },
+    {
+        "module":"github.com/chavacava/internal/",
+        "kind":"forbid",
+        "modules":"github.com/chavacava/cmd/"
+    }
+]
