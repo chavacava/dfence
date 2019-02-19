@@ -1,12 +1,20 @@
-[
-    {
-        "module":"github.com/chavacava/cmd/",
-        "kind":"allow",
-        "modules":"github.com/chavacava/internal/,github.com/chavacava/cmd/"
+{
+    "modules":{
+        "cli":"github.com/chavacava/cmd/",
+        "internal":"github.com/chavacava/internal/"
     },
-    {
-        "module":"github.com/chavacava/internal/",
-        "kind":"forbid",
-        "modules":"github.com/chavacava/cmd/"
-    }
-]
+    "constraints":[
+        {
+            "module":"cli",
+            "kind":"allow",
+            "targets":"internal,cli",
+            "onbreak":"warn"
+        },
+        {
+            "module":"internal",
+            "kind":"forbid",
+            "targets":"cli",
+            "onbreak":"error"
+        }
+    ]
+}
