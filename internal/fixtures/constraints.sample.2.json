@@ -1,0 +1,15 @@
+{
+    "modules":{
+        "cli":"dfence/cmd",
+        "internal":"dfence/internal"
+    },
+    "constraints":[
+        {
+            "modules":"cmd",
+            "kind":"forbid",
+            "targets":"internal",
+            "onbreak":"error"
+        }
+    ]
+}
+

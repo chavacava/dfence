@@ -1,0 +1,16 @@
+{
+    "modules":{
+    "das": "daas/das",
+    "wslibs":"pfneo-ws-libs",
+    "wsclients":"pfneo-ws-clients",
+    "vendors": "cloud.google.com  github.com  golang.org  google.golang.org  gopkg.in  k8s.io"
+    },
+    "constraints":[
+        {
+            "modules":"das multitest",
+            "kind":"allow",
+            "targets":"wslibs wsclients vendors",
+            "onbreak":"error"
+        }
+    ]
+}
