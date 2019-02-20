@@ -2,15 +2,22 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"log"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/chavacava/dfence/internal"
-	"github.com/mgechev/dots"
 )
 
 func main() {
-	pkgFlag := os.Args[1:1]
+	pkgFlag := []string{"."}
+	if len(os.Args) > 1 {
+		pkgFlag = os.Args[1:2]
+	}
+
 	stream := os.Stdin
 
 	policy, err := internal.NewPolicyFromJSON(stream)
@@ -18,9 +25,10 @@ func main() {
 		log.Fatalf("Unable to load policy : %v", err)
 	}
 
-	pkgs, err := retrievePackages(pkgFlag[0])
+	pkgSelector := pkgFlag[0]
+	pkgs, err := retrievePackages(pkgSelector)
 	if err != nil {
-		log.Fatalf("Unable to retrieve packages using the selector '%s': %v", pkgFlag, err)
+		log.Fatalf("Unable to retrieve packages using the selector '%s': %v", pkgSelector, err)
 	}
 
 	constraints := internal.BuildPlainConstraints(policy)
@@ -44,5 +52,18 @@ func main() {
 }
 
 func retrievePackages(pkgSelector string) ([]string, error) {
-	return dots.Resolve([]string{pkgSelector}, []string{"vendor/..."})
+	r := []string{}
+	cmd := exec.Command("go", "list", pkgSelector)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	outStr, errStr := string(stdout.Bytes()), string(stderr.Bytes())
+	if err != nil {
+		return r, errors.New(errStr)
+	}
+
+	r = strings.Split(outStr, "\n")
+
+	return r, nil
 }
