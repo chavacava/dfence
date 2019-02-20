@@ -4,6 +4,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -33,7 +34,9 @@ func main() {
 		log.Fatalf("Unable to retrieve packages using the selector '%s': %v", pkgSelector, err)
 	}
 
-	constraints := internal.BuildPlainConstraints(policy)
+	fmt.Printf("Pacages %+v ?\n", pkgs)
+
+	constraints := internal.BuildCanonicalConstraints(policy)
 	checker := internal.NewChecker(constraints)
 
 	pkgCount := len(pkgs)

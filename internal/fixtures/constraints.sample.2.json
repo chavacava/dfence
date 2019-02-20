@@ -1,16 +1,21 @@
 {
-    "modules":{
+    "components":{
         "cli":"dfence/cmd",
         "internal":"dfence/internal",
         "vendored":"github.com"
     },
     "constraints":[
         {
-            "modules":"internal",
+            "scope":"internal",
             "kind":"forbid",
-            "targets":"cli",
+            "deps":"cli",
+            "onbreak":"error"
+        },
+        {
+            "scope":"cmd",
+            "kind":"forbid",
+            "deps":"internal",
             "onbreak":"error"
         }
     ]
 }
-

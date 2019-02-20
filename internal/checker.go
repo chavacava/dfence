@@ -11,11 +11,11 @@ import (
 
 // Checker models a dependencies constraints checker
 type Checker struct {
-	constraints []plainConstraint
+	constraints []canonicalConstraint
 }
 
 // NewChecker yields a dependencies constraint checker
-func NewChecker(c []plainConstraint) Checker {
+func NewChecker(c []canonicalConstraint) Checker {
 	return Checker{constraints: c}
 }
 
@@ -78,7 +78,7 @@ func (c Checker) CheckPkg(pkg string, out chan<- CheckResult, wg *sync.WaitGroup
 	out <- buildCheckResult(warns, errs)
 }
 
-func checkAllowConstraint(c plainConstraint, pkg string, pkgDeps []depth.Pkg) (warns []error, errs []error) {
+func checkAllowConstraint(c canonicalConstraint, pkg string, pkgDeps []depth.Pkg) (warns []error, errs []error) {
 	errs = []error{}
 	warns = []error{}
 
@@ -104,17 +104,19 @@ func checkAllowConstraint(c plainConstraint, pkg string, pkgDeps []depth.Pkg) (w
 	return warns, errs
 }
 
-func checkForbidConstraint(c plainConstraint, pkg string, pkgDeps []depth.Pkg) (warns []error, errs []error) {
+func checkForbidConstraint(c canonicalConstraint, pkg string, pkgDeps []depth.Pkg) (warns []error, errs []error) {
 	errs = []error{}
 	warns = []error{}
 
 	for _, d := range pkgDeps {
+		fmt.Printf("dep %s ?\n", d.Name)
 		if d.Internal {
 			continue // skip stdlib packages
 		}
 
 		ok := true
 		for _, t := range c.targetPatterns {
+			fmt.Printf("%s contains %s ?\n", d.Name, t)
 			matches := strings.Contains(d.Name, t)
 			if matches {
 				ok = false
@@ -140,8 +142,8 @@ func appendByLevel(w, e []error, level errorLevel, msg string) (warns []error, e
 	return w, append(e, newErr)
 }
 
-func (c Checker) getApplicableConstraints(pkg string) (constraints []plainConstraint) {
-	constraints = []plainConstraint{}
+func (c Checker) getApplicableConstraints(pkg string) (constraints []canonicalConstraint) {
+	constraints = []canonicalConstraint{}
 	for _, constr := range c.constraints {
 		for _, mp := range constr.modulePatterns {
 			if strings.Contains(pkg, mp) {

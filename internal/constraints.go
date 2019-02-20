@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io" 
+	"io"
 	"regexp"
 	"strings"
 )
@@ -34,15 +34,15 @@ const (
 
 // Constraint represents the set of dependency constraints to enforce on a set of modules
 type Constraint struct {
-	Modules string
+	Scope   string
 	Kind    constraintKind
-	Targets string
+	Deps    string
 	OnBreak errorLevel
 }
 
 // Policy represents the set of dependency constraints to enforce
 type Policy struct {
-	Modules     map[string]interface{}
+	Components  map[string]interface{}
 	Constraints []Constraint
 }
 
@@ -52,7 +52,7 @@ func NewPolicyFromJSON(stream io.Reader) (Policy, error) {
 
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(stream)
-	
+
 	err := json.Unmarshal(buf.Bytes(), &policy)
 	if err != nil {
 		return Policy{}, errors.New(fmt.Sprintf("Unable to read policy from JSON file: %v", err))
@@ -61,25 +61,26 @@ func NewPolicyFromJSON(stream io.Reader) (Policy, error) {
 	return policy, nil
 }
 
-type plainConstraint struct {
-	modulePatterns  []string
+type canonicalConstraint struct {
+	modulePatterns []string
 	kind           constraintKind
 	targetPatterns []string
 	onBreak        errorLevel
 }
 
-func BuildPlainConstraints(p Policy) []plainConstraint {
-	r := []plainConstraint{}
-	
-	modulePatterns := extractModulePatterns(p.Modules) 
-	
-	for _,c:= range p.Constraints {
-		newConstraint := plainConstraint{}
-		for _, m:= range strings.Split(c.Modules,patternSeparator) {
-			newConstraint.modulePatterns = append(newConstraint.modulePatterns,modulePatterns[m]...)
+// BuildCanonicalConstraints yields canonical constraints from a dependency policy
+func BuildCanonicalConstraints(p Policy) []canonicalConstraint {
+	r := []canonicalConstraint{}
+
+	modulePatterns := extractComponentsPatterns(p.Components)
+
+	for _, c := range p.Constraints {
+		newConstraint := canonicalConstraint{}
+		for _, m := range strings.Split(c.Scope, patternSeparator) {
+			newConstraint.modulePatterns = append(newConstraint.modulePatterns, modulePatterns[m]...)
 		}
 		newConstraint.kind = c.Kind
-		for _, t:= range strings.Split(c.Targets, patternSeparator) {
+		for _, t := range strings.Split(c.Deps, patternSeparator) {
 			newConstraint.targetPatterns = append(newConstraint.targetPatterns, modulePatterns[t]...)
 		}
 		newConstraint.onBreak = c.OnBreak
@@ -90,11 +91,11 @@ func BuildPlainConstraints(p Policy) []plainConstraint {
 	return r
 }
 
-func extractModulePatterns(mods map[string]interface{}) map[string][]string {
+func extractComponentsPatterns(mods map[string]interface{}) map[string][]string {
 	r := map[string][]string{}
-	for k,v := range mods {
-		patterns, _ := v.(string) // TODO check type	
-		r[k] = strings.Split(patterns,patternSeparator)
+	for k, v := range mods {
+		patterns, _ := v.(string) // TODO check type
+		r[k] = strings.Split(patterns, patternSeparator)
 	}
 
 	return r
@@ -102,8 +103,8 @@ func extractModulePatterns(mods map[string]interface{}) map[string][]string {
 
 func buildRegExprs(from string) []*regexp.Regexp {
 	rExprs := []*regexp.Regexp{}
-	
-	for _, p := range strings.Split(from,patternSeparator) {
+
+	for _, p := range strings.Split(from, patternSeparator) {
 		re := regexp.MustCompile(p)
 		rExprs = append(rExprs, re)
 	}
