@@ -4,27 +4,30 @@ package main
 import (
 	"log"
 	"os"
-	"fmt"
+
 	"github.com/chavacava/dfence/internal"
+	"github.com/mgechev/dots"
 )
 
 func main() {
-	pkgFlag := os.Args[1:]
-
+	pkgFlag := os.Args[1:1]
 	stream := os.Stdin
-	
+
 	policy, err := internal.NewPolicyFromJSON(stream)
-	if err!= nil {
+	if err != nil {
 		log.Fatalf("Unable to load policy : %v", err)
 	}
 
+	pkgs, err := retrievePackages(pkgFlag[0])
+	if err != nil {
+		log.Fatalf("Unable to retrieve packages using the selector '%s': %v", pkgFlag, err)
+	}
+
 	constraints := internal.BuildPlainConstraints(policy)
-	fmt.Printf(">>>> plain constraints:%+v\n", constraints)
-	
 	checker := internal.NewChecker(constraints)
 
 	status := 0
-	for _, pkg := range pkgFlag {
+	for _, pkg := range pkgs {
 		warns, errs := checker.CheckPkg(pkg)
 		for _, w := range warns {
 			log.Println(w)
@@ -37,5 +40,9 @@ func main() {
 		}
 	}
 
-	os.Exit(status)	
+	os.Exit(status)
+}
+
+func retrievePackages(pkgSelector string) ([]string, error) {
+	return dots.Resolve([]string{pkgSelector}, []string{"vendor/..."})
 }
