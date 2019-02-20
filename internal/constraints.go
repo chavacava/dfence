@@ -61,34 +61,45 @@ func NewPolicyFromJSON(stream io.Reader) (Policy, error) {
 	return policy, nil
 }
 
-type canonicalConstraint struct {
-	modulePatterns []string
-	kind           constraintKind
-	targetPatterns []string
-	onBreak        errorLevel
+// CanonicalConstraint is a plain raw (ie without references to components) dependency constraint
+type CanonicalConstraint struct {
+	componentPatterns []string
+	kind              constraintKind
+	targetPatterns    []string
+	onBreak           errorLevel
 }
 
 // BuildCanonicalConstraints yields canonical constraints from a dependency policy
-func BuildCanonicalConstraints(p Policy) []canonicalConstraint {
-	r := []canonicalConstraint{}
+func BuildCanonicalConstraints(p Policy) ([]CanonicalConstraint, error) {
+	r := []CanonicalConstraint{}
 
-	modulePatterns := extractComponentsPatterns(p.Components)
+	componentPatterns := extractComponentsPatterns(p.Components)
 
 	for _, c := range p.Constraints {
-		newConstraint := canonicalConstraint{}
+		newConstraint := CanonicalConstraint{}
 		for _, m := range strings.Split(c.Scope, patternSeparator) {
-			newConstraint.modulePatterns = append(newConstraint.modulePatterns, modulePatterns[m]...)
+			p, ok := componentPatterns[m]
+			if !ok {
+				return r, fmt.Errorf("component '%s' undefined", m)
+			}
+
+			newConstraint.componentPatterns = append(newConstraint.componentPatterns, p...)
 		}
 		newConstraint.kind = c.Kind
-		for _, t := range strings.Split(c.Deps, patternSeparator) {
-			newConstraint.targetPatterns = append(newConstraint.targetPatterns, modulePatterns[t]...)
+		for _, d := range strings.Split(c.Deps, patternSeparator) {
+			p, ok := componentPatterns[d]
+			if !ok {
+				return r, fmt.Errorf("component '%s' undefined", d)
+			}
+
+			newConstraint.targetPatterns = append(newConstraint.targetPatterns, p...)
 		}
 		newConstraint.onBreak = c.OnBreak
 
 		r = append(r, newConstraint)
 	}
 
-	return r
+	return r, nil
 }
 
 func extractComponentsPatterns(mods map[string]interface{}) map[string][]string {

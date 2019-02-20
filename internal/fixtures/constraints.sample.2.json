@@ -10,12 +10,6 @@
             "kind":"forbid",
             "deps":"cli",
             "onbreak":"error"
-        },
-        {
-            "scope":"cmd",
-            "kind":"forbid",
-            "deps":"internal",
-            "onbreak":"error"
         }
     ]
 }

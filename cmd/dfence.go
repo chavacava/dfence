@@ -36,7 +36,10 @@ func main() {
 
 	fmt.Printf("Pacages %+v ?\n", pkgs)
 
-	constraints := internal.BuildCanonicalConstraints(policy)
+	constraints, err := internal.BuildCanonicalConstraints(policy)
+	if err != nil {
+		log.Fatalf("Unable to aggregate policy constraints: %v", err)
+	}
 	checker := internal.NewChecker(constraints)
 
 	pkgCount := len(pkgs)
