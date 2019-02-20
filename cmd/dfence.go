@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 
 	"github.com/chavacava/dfence/internal"
 )
@@ -26,6 +27,7 @@ func main() {
 	}
 
 	pkgSelector := pkgFlag[0]
+	log.Println("Retrieving packages to check...")
 	pkgs, err := retrievePackages(pkgSelector)
 	if err != nil {
 		log.Fatalf("Unable to retrieve packages using the selector '%s': %v", pkgSelector, err)
@@ -34,16 +36,28 @@ func main() {
 	constraints := internal.BuildPlainConstraints(policy)
 	checker := internal.NewChecker(constraints)
 
+	pkgCount := len(pkgs)
+	log.Printf("Will check dependencies of %d packages.", pkgCount)
 	status := 0
+	var wg sync.WaitGroup
+	out := make(chan internal.CheckResult, pkgCount)
 	for _, pkg := range pkgs {
-		warns, errs := checker.CheckPkg(pkg)
-		for _, w := range warns {
+		wg.Add(1)
+		go checker.CheckPkg(pkg, out, &wg)
+	}
+
+	wg.Wait()
+	log.Printf("Check done.")
+
+	for i := 0; i < pkgCount; i++ {
+		result := <-out
+		for _, w := range result.Warns {
 			log.Println(w)
 		}
-		for _, e := range errs {
+		for _, e := range result.Errs {
 			log.Println(e)
 		}
-		if len(errs) > 0 {
+		if len(result.Errs) > 0 {
 			status = 1
 		}
 	}

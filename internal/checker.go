@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/KyleBanks/depth"
 )
@@ -23,15 +24,27 @@ func (c Checker) String() string {
 	return fmt.Sprintf("Checker constraints: %+v", c.constraints)
 }
 
+// CheckResult models the result of a dependency checking
+type CheckResult struct {
+	Warns []error
+	Errs  []error
+}
+
+func buildCheckResult(warns, errs []error) CheckResult {
+	return CheckResult{Warns: warns, Errs: errs}
+}
+
 // CheckPkg checks if the given package respects the dependency constraints of this checker
-func (c Checker) CheckPkg(pkg string) (warns []error, errs []error) {
-	errs = []error{}
-	warns = []error{}
+func (c Checker) CheckPkg(pkg string, out chan<- CheckResult, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	errs := []error{}
+	warns := []error{}
 
 	applicableConstraints := c.getApplicableConstraints(pkg)
-	fmt.Printf(">>>> applicable constraints:%+v\n", applicableConstraints)
 	if len(applicableConstraints) == 0 {
-		return warns, errs
+		out <- buildCheckResult(warns, errs)
+		return
 	}
 
 	t := depth.Tree{
@@ -41,7 +54,8 @@ func (c Checker) CheckPkg(pkg string) (warns []error, errs []error) {
 
 	err := t.Resolve(pkg)
 	if err != nil {
-		return warns, append(errs, fmt.Errorf("[%s] Unable to get dependencies of %s: %v", Error, pkg, err))
+		out <- buildCheckResult(warns, append(errs, fmt.Errorf("[%s] Unable to get dependencies of %s: %v", Error, pkg, err)))
+		return
 	}
 
 	pkgDeps := t.Root.Deps
@@ -57,7 +71,7 @@ func (c Checker) CheckPkg(pkg string) (warns []error, errs []error) {
 		}
 	}
 
-	return warns, errs
+	out <- buildCheckResult(warns, errs)
 }
 
 func checkConstraint(c plainConstraint, pkg string, pkgDeps []depth.Pkg) (warns []error, errs []error) {
@@ -104,9 +118,7 @@ func (c Checker) getApplicableConstraints(pkg string) (constraints []plainConstr
 	constraints = []plainConstraint{}
 	for _, constr := range c.constraints {
 		for _, mp := range constr.modulePatterns {
-			println(">>> check if", pkg, "contains", mp)
 			if strings.Contains(pkg, mp) {
-				println(">>> yes")
 				constraints = append(constraints, constr)
 				break
 			}
