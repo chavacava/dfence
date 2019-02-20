@@ -37,7 +37,7 @@ func main() {
 	checker := internal.NewChecker(constraints)
 
 	pkgCount := len(pkgs)
-	log.Printf("Will check dependencies of %d packages.", pkgCount)
+	log.Printf("Will check dependencies of %d package(s).", pkgCount)
 	status := 0
 	var wg sync.WaitGroup
 	out := make(chan internal.CheckResult, pkgCount)
@@ -79,5 +79,5 @@ func retrievePackages(pkgSelector string) ([]string, error) {
 
 	r = strings.Split(outStr, "\n")
 
-	return r, nil
+	return r[:len(r)-1], nil
 }
