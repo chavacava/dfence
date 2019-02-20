@@ -62,8 +62,12 @@ func (c Checker) CheckPkg(pkg string, out chan<- CheckResult, wg *sync.WaitGroup
 
 	for _, constr := range applicableConstraints {
 		switch kind := constr.kind; kind {
-		case Allow, Forbid:
-			w, e := checkConstraint(constr, pkg, pkgDeps)
+		case Allow:
+			w, e := checkAllowConstraint(constr, pkg, pkgDeps)
+			warns = append(warns, w...)
+			errs = append(errs, e...)
+		case Forbid:
+			w, e := checkForbidConstraint(constr, pkg, pkgDeps)
 			warns = append(warns, w...)
 			errs = append(errs, e...)
 		default:
@@ -74,7 +78,7 @@ func (c Checker) CheckPkg(pkg string, out chan<- CheckResult, wg *sync.WaitGroup
 	out <- buildCheckResult(warns, errs)
 }
 
-func checkConstraint(c plainConstraint, pkg string, pkgDeps []depth.Pkg) (warns []error, errs []error) {
+func checkAllowConstraint(c plainConstraint, pkg string, pkgDeps []depth.Pkg) (warns []error, errs []error) {
 	errs = []error{}
 	warns = []error{}
 
@@ -86,11 +90,33 @@ func checkConstraint(c plainConstraint, pkg string, pkgDeps []depth.Pkg) (warns 
 		ok := false
 		for _, t := range c.targetPatterns {
 			matches := strings.Contains(d.Name, t)
-			if matches && c.kind == Allow {
+			if matches {
 				ok = true
 				break
 			}
-			if matches && c.kind == Forbid {
+		}
+
+		if !ok {
+			warns, errs = appendByLevel(warns, errs, c.onBreak, fmt.Sprintf("[%s] %s depends on %s", c.onBreak, pkg, d.Name))
+		}
+	}
+
+	return warns, errs
+}
+
+func checkForbidConstraint(c plainConstraint, pkg string, pkgDeps []depth.Pkg) (warns []error, errs []error) {
+	errs = []error{}
+	warns = []error{}
+
+	for _, d := range pkgDeps {
+		if d.Internal {
+			continue // skip stdlib packages
+		}
+
+		ok := true
+		for _, t := range c.targetPatterns {
+			matches := strings.Contains(d.Name, t)
+			if matches {
 				ok = false
 				break
 			}

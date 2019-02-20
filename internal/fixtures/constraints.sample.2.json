@@ -1,13 +1,14 @@
 {
     "modules":{
         "cli":"dfence/cmd",
-        "internal":"dfence/internal"
+        "internal":"dfence/internal",
+        "vendored":"github.com"
     },
     "constraints":[
         {
-            "modules":"cmd",
+            "modules":"internal",
             "kind":"forbid",
-            "targets":"internal",
+            "targets":"cli",
             "onbreak":"error"
         }
     ]
