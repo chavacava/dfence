@@ -1,4 +1,4 @@
-// Package cmd implements the command line interface of dfence
+// Package main implements the command line interface of dfence
 package main
 
 import (
