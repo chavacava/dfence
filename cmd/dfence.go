@@ -4,6 +4,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -15,12 +16,27 @@ import (
 )
 
 func main() {
+	var policyFile string
+	args := os.Args[1:]
+	f := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	f.StringVar(&policyFile, "policy", "", "policy file (defaults to stdin)")
+	f.Parse(args)
+
 	pkgFlag := []string{"."}
-	if len(os.Args) > 1 {
-		pkgFlag = os.Args[1:2]
+	if len(f.Args()) > 0 {
+		pkgFlag = f.Args()[0:1]
 	}
 
 	stream := os.Stdin
+	if policyFile != "" {
+		var err error
+		stream, err = os.Open(policyFile)
+		if err != nil {
+			log.Fatalf("Unable to open policy file %s: %+v", policyFile, err)
+		}
+	} else {
+		log.Println("Policy file not set, reading it from stdin...")
+	}
 
 	policy, err := internal.NewPolicyFromJSON(stream)
 	if err != nil {
