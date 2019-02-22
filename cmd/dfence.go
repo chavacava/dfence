@@ -12,9 +12,11 @@ import (
 	"sync"
 
 	"github.com/chavacava/dfence/internal"
+	"github.com/fatih/color"
 )
 
 func main() {
+	_ = buildLogger()
 	var policyFile string
 	args := os.Args[1:]
 	f := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
@@ -99,4 +101,20 @@ func retrievePackages(pkgSelector string) ([]string, error) {
 	r = strings.Split(outStr, "\n")
 
 	return r[:len(r)-1], nil
+}
+
+func buildLogger() internal.Logger {
+
+	debug := buildLoggerFunc("[DEBUG] ", color.FgCyan)
+	info := buildLoggerFunc("[INFO] ", color.FgGreen)
+	warn := buildLoggerFunc("[WARN] ", color.FgBlue)
+	err := buildLoggerFunc("[ERROR] ", color.FgRed)
+
+	return internal.NewLogger(debug, info, warn, err, os.Stderr, os.Stdout)
+}
+
+func buildLoggerFunc(prefix string, c color.Color) internal.LoggerFunc {
+	return func(msg string, vars ...interface{}) {
+		c.Printf(prefix+msg, vars...)
+	}
 }
