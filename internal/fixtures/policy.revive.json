@@ -1,0 +1,43 @@
+{
+    "components":{
+        "cli":"main",
+        "formatter":"formatter",
+        "lint":"lint",
+        "rule":"rule",
+        "test":"test",
+        "vendored":"github.com/fatih github.com/olekukonko/tablewriter github.com/pkg/errors golang.org/x"
+    },
+    "constraints":[
+        {
+            "scope":"cli",
+            "kind":"allow",
+            "deps":"lint",
+            "onbreak":"error"
+        },
+        {
+            "scope":"rule",
+            "kind":"allow",
+            "deps":"lint vendored",
+            "onbreak":"error"
+        },
+        {
+            "scope":"lint",
+            "kind":"allow",
+            "deps":"vendored",
+            "onbreak":"error"
+        },
+        {
+            "scope":"formatter",
+            "kind":"allow",
+            "deps":"lint vendored",
+            "onbreak":"error"
+        },
+        {
+            "scope":"test",
+            "kind":"allow",
+            "deps":"lint rule vendored",
+            "onbreak":"error"
+        }
+
+    ]
+}
