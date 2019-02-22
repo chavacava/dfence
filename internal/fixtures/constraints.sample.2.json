@@ -4,9 +4,13 @@
         "internal":"dfence/internal",
         "vendored":"github.com"
     },
+    "classes":{
+        "ca":"internal vendored",
+        "mclas":"ca"
+    },
     "constraints":[
         {
-            "scope":"internal",
+            "scope":"internal ca",
             "kind":"forbid",
             "deps":"cli",
             "onbreak":"error"

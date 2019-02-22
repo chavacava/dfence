@@ -90,7 +90,7 @@ func checkAllowConstraint(c CanonicalConstraint, pkg string, pkgDeps []depth.Pkg
 		}
 
 		ok := false
-		for _, t := range c.targetPatterns {
+		for _, t := range c.depPatterns {
 			if t == "" {
 				continue // TODO check why this happens
 			}
@@ -120,7 +120,7 @@ func checkForbidConstraint(c CanonicalConstraint, pkg string, pkgDeps []depth.Pk
 		}
 
 		ok := true
-		for _, t := range c.targetPatterns {
+		for _, t := range c.depPatterns {
 			matches := strings.Contains(d.Name, t)
 			if matches {
 				ok = false
@@ -150,7 +150,6 @@ func (c Checker) getApplicableConstraints(pkg string) (constraints []CanonicalCo
 	constraints = []CanonicalConstraint{}
 	for _, constr := range c.constraints {
 		for _, mp := range constr.componentPatterns {
-			log.Printf("[DEBUG] %s contains %s", pkg, mp)
 			if strings.Contains(pkg, mp) {
 				constraints = append(constraints, constr)
 				break

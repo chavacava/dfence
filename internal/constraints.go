@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -43,6 +43,8 @@ type Constraint struct {
 // Policy represents the set of dependency constraints to enforce
 type Policy struct {
 	Components  map[string]interface{}
+	Classes     map[string]interface{}
+	classIds    []string // **sorted** list of class ids
 	Constraints []Constraint
 }
 
@@ -58,14 +60,27 @@ func NewPolicyFromJSON(stream io.Reader) (Policy, error) {
 		return Policy{}, fmt.Errorf("Unable to read policy from JSON file: %v", err)
 	}
 
+	policy.classIds = getSortedKeys(policy.Classes)
+
 	return policy, nil
+}
+
+func getSortedKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+
+	sort.Strings(keys)
+
+	return keys
 }
 
 // CanonicalConstraint is a plain raw (ie without references to components) dependency constraint
 type CanonicalConstraint struct {
 	componentPatterns []string
 	kind              constraintKind
-	targetPatterns    []string
+	depPatterns       []string
 	onBreak           errorLevel
 }
 
@@ -73,35 +88,38 @@ type CanonicalConstraint struct {
 func BuildCanonicalConstraints(p Policy) ([]CanonicalConstraint, error) {
 	r := []CanonicalConstraint{}
 
-	log.Printf("Policy:%+v", p)
-	componentPatterns := extractComponentsPatterns(p.Components)
+	componentPatterns := p.extractComponentsPatterns()
+	classesPatterns, err := p.extractClassesPatterns(componentPatterns)
+	if err != nil {
+		return r, err
+	}
 
 	for _, c := range p.Constraints {
 		newConstraint := CanonicalConstraint{}
-		for _, m := range strings.Split(c.Scope, patternSeparator) {
-			if m == "" {
+		for _, id := range strings.Split(c.Scope, patternSeparator) {
+			if id == "" {
 				continue
 			}
 
-			p, ok := componentPatterns[m]
+			p, ok := resolveId(id, componentPatterns, classesPatterns)
 			if !ok {
-				return r, fmt.Errorf("component '%s' undefined", m)
+				return r, fmt.Errorf("undefined id '%s' in constraint scope '%s' ", id, c.Scope)
 			}
 
 			newConstraint.componentPatterns = append(newConstraint.componentPatterns, p...)
 		}
 		newConstraint.kind = c.Kind
-		for _, d := range strings.Split(c.Deps, patternSeparator) {
-			if d == "" {
+		for _, id := range strings.Split(c.Deps, patternSeparator) {
+			if id == "" {
 				continue
 			}
 
-			p, ok := componentPatterns[d]
+			p, ok := resolveId(id, componentPatterns, classesPatterns)
 			if !ok {
-				return r, fmt.Errorf("component '%s' undefined", d)
+				return r, fmt.Errorf("undefined id '%s' in constraint deps '%s'", id, c.Deps)
 			}
 
-			newConstraint.targetPatterns = append(newConstraint.targetPatterns, p...)
+			newConstraint.depPatterns = append(newConstraint.depPatterns, p...)
 		}
 		newConstraint.onBreak = c.OnBreak
 
@@ -111,14 +129,48 @@ func BuildCanonicalConstraints(p Policy) ([]CanonicalConstraint, error) {
 	return r, nil
 }
 
-func extractComponentsPatterns(mods map[string]interface{}) map[string][]string {
+func (p Policy) extractComponentsPatterns() map[string][]string {
 	r := map[string][]string{}
-	for k, v := range mods {
+	for k, v := range p.Components {
 		patterns, _ := v.(string) // TODO check type
 		r[k] = strings.Split(patterns, patternSeparator)
 	}
 
 	return r
+}
+
+func (p Policy) extractClassesPatterns(compPatterns map[string][]string) (map[string][]string, error) {
+	r := map[string][]string{}
+
+	for _, k := range p.classIds {
+		v, _ := p.Classes[k]
+		classDef, _ := v.(string) // TODO check type
+		compRefs := strings.Split(classDef, patternSeparator)
+
+		for _, cr := range compRefs {
+
+			patterns, ok := compPatterns[cr]
+			if !ok {
+				patterns, ok = r[cr]
+				if !ok {
+					return r, fmt.Errorf("class %s refers unknown id '%s'", k, cr)
+				}
+			}
+
+			r[k] = append(r[k], patterns...)
+		}
+	}
+
+	return r, nil
+}
+
+func resolveId(id string, comps, cls map[string][]string) ([]string, bool) {
+	p, ok := cls[id]
+	if !ok {
+		p, ok = comps[id]
+	}
+
+	return p, ok
 }
 
 func buildRegExprs(from string) []*regexp.Regexp {
