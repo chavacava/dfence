@@ -5,8 +5,8 @@ control by enforcing dependencies policies on your packages.
 
 ## Describing dependencies policies
 
-`dfence` will enforce dependencies policies described through a JSON file of the
-form:
+`dfence` will enforce dependencies policies described through a JSON file like the 
+following:
 
 ```json
 {
@@ -42,6 +42,8 @@ indicates the error level to produce when the constraint is not respected.
 The previous example can be read: _Rise an error if a package with a path 
 containing `dfence/internal` depends on a package with a path containing 
 `dfence/cmd`._
+
+The JSON Schema for the policy file is available [here](./doc/policy.schema.json)
 
 ## Usage
 

@@ -1,0 +1,61 @@
+{
+    "definitions": {},
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://github.com/chavacava/dfence/doc/policy.json",
+    "type": "object",
+    "title": "Schema for dependency policy",
+    "required": [
+      "components",
+      "constraints"
+    ],
+    "properties": {
+      "components": {
+        "description": "Logical decomposition of the application. Components are defined by a set of space separated patterns",
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "constraints": {
+        "description": "List of dependencies constraints.",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "description": "Dependencies constraint",
+          "required": [
+            "scope",
+            "kind",
+            "deps",
+            "onbreak"
+          ],
+          "properties": {
+            "scope": {
+              "description": "Comma separated list of components to which applies this constraint",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Is this a Allow or a Forbid constraint",
+              "type": "string",
+              "enum": [
+                "allow",
+                "forbid"
+              ]
+            },
+            "deps": {
+              "description": "Comma separated list of components that are allowed/forbidden",
+              "type": "string"
+            },
+            "onbreak": {
+              "description": "Should the check rise an error or a warning if the constraint is broken",
+              "type": "string",
+              "enum": [
+                "error",
+                "warn"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+  
