@@ -3,7 +3,6 @@ package internal
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 
@@ -13,11 +12,12 @@ import (
 // Checker models a dependencies constraints checker
 type Checker struct {
 	constraints []CanonicalConstraint
+	logger      Logger
 }
 
 // NewChecker yields a dependencies constraint checker
-func NewChecker(c []CanonicalConstraint) Checker {
-	return Checker{constraints: c}
+func NewChecker(c []CanonicalConstraint, l Logger) Checker {
+	return Checker{constraints: c, logger: l}
 }
 
 // String yields a string representation of this checker
@@ -43,7 +43,7 @@ func (c Checker) CheckPkg(pkg string, out chan<- CheckResult, wg *sync.WaitGroup
 	warns := []error{}
 
 	applicableConstraints := c.getApplicableConstraints(pkg)
-	log.Printf("Checking (%d constraints) package %s", len(applicableConstraints), pkg)
+	c.logger.Debugf("Checking (%d constraints) package %s", len(applicableConstraints), pkg)
 	if len(applicableConstraints) == 0 {
 		out <- buildCheckResult(warns, errs)
 		return
@@ -65,11 +65,11 @@ func (c Checker) CheckPkg(pkg string, out chan<- CheckResult, wg *sync.WaitGroup
 	for _, constr := range applicableConstraints {
 		switch kind := constr.kind; kind {
 		case Allow:
-			w, e := checkAllowConstraint(constr, pkg, pkgDeps)
+			w, e := c.checkAllowConstraint(constr, pkg, pkgDeps)
 			warns = append(warns, w...)
 			errs = append(errs, e...)
 		case Forbid:
-			w, e := checkForbidConstraint(constr, pkg, pkgDeps)
+			w, e := c.checkForbidConstraint(constr, pkg, pkgDeps)
 			warns = append(warns, w...)
 			errs = append(errs, e...)
 		default:
@@ -80,7 +80,7 @@ func (c Checker) CheckPkg(pkg string, out chan<- CheckResult, wg *sync.WaitGroup
 	out <- buildCheckResult(warns, errs)
 }
 
-func checkAllowConstraint(c CanonicalConstraint, pkg string, pkgDeps []depth.Pkg) (warns []error, errs []error) {
+func (c Checker) checkAllowConstraint(constraint CanonicalConstraint, pkg string, pkgDeps []depth.Pkg) (warns []error, errs []error) {
 	errs = []error{}
 	warns = []error{}
 
@@ -90,11 +90,11 @@ func checkAllowConstraint(c CanonicalConstraint, pkg string, pkgDeps []depth.Pkg
 		}
 
 		ok := false
-		for _, t := range c.depPatterns {
+		for _, t := range constraint.depPatterns {
 			if t == "" {
 				continue // TODO check why this happens
 			}
-			log.Printf("allow: %s contains %s ?", d.Name, t)
+			c.logger.Debugf("allow: %s contains %s ?", d.Name, t)
 			matches := strings.Contains(d.Name, t)
 			if matches {
 				ok = true
@@ -103,14 +103,14 @@ func checkAllowConstraint(c CanonicalConstraint, pkg string, pkgDeps []depth.Pkg
 		}
 
 		if !ok {
-			warns, errs = appendByLevel(warns, errs, c.onBreak, fmt.Sprintf("[%s] %s depends on %s", c.onBreak, pkg, d.Name))
+			warns, errs = c.appendByLevel(warns, errs, constraint.onBreak, fmt.Sprintf("[%s] %s depends on %s", constraint.onBreak, pkg, d.Name))
 		}
 	}
 
 	return warns, errs
 }
 
-func checkForbidConstraint(c CanonicalConstraint, pkg string, pkgDeps []depth.Pkg) (warns []error, errs []error) {
+func (c Checker) checkForbidConstraint(constraint CanonicalConstraint, pkg string, pkgDeps []depth.Pkg) (warns []error, errs []error) {
 	errs = []error{}
 	warns = []error{}
 
@@ -120,7 +120,7 @@ func checkForbidConstraint(c CanonicalConstraint, pkg string, pkgDeps []depth.Pk
 		}
 
 		ok := true
-		for _, t := range c.depPatterns {
+		for _, t := range constraint.depPatterns {
 			matches := strings.Contains(d.Name, t)
 			if matches {
 				ok = false
@@ -129,14 +129,14 @@ func checkForbidConstraint(c CanonicalConstraint, pkg string, pkgDeps []depth.Pk
 		}
 
 		if !ok {
-			warns, errs = appendByLevel(warns, errs, c.onBreak, fmt.Sprintf("[%s] %s depends on %s", c.onBreak, pkg, d.Name))
+			warns, errs = c.appendByLevel(warns, errs, constraint.onBreak, fmt.Sprintf("[%s] %s depends on %s", constraint.onBreak, pkg, d.Name))
 		}
 	}
 
 	return warns, errs
 }
 
-func appendByLevel(w, e []error, level errorLevel, msg string) (warns []error, errs []error) {
+func (c Checker) appendByLevel(w, e []error, level errorLevel, msg string) (warns []error, errs []error) {
 	newErr := errors.New(msg)
 
 	if level == Warn {
