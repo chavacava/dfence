@@ -16,6 +16,13 @@
           "type": "string"
         }
       },
+      "classes": {
+        "description": "Logical aggregation of components. Classes, are defined by a set of space separated Component ids",
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
       "constraints": {
         "description": "List of dependencies constraints.",
         "type": "array",

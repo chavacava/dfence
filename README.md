@@ -47,26 +47,29 @@ The JSON Schema for the policy file is available [here](./doc/policy.schema.json
 
 ## Usage
 
-`dfence` takes two parameters:
+```
+Usage of ./bin/dfence:
+  -log string
+        log level: none, error, warn, info, debug (default "info")
+  -policy string
+        path to dependencies policy file
+```
 
-* the JSON file describing the dependencies policies
-* the set of packages to check
-
-The first parameter is read from `stdin`, the second is optional and defaults to `.` (the package in the current dir)
+`dfence` takes another parameter, the name of the packages to analyze. Here you can use `.` and `./...`
 
 Examples:
 
 ```
-cat myConstraints.json | dfence ./...
+dfence -log debug -policy policy.revive.json ./...
 ```
 
 The above command runs `dfence` tu enforce constraints described in the file
-`myConstraints.json` and over all the packages in the current directory and its
+`policy.revive.json` and over all the packages in the current directory and its
 subdirectories.
 
 ```
-cat myConstraints.json | dfence .
+dfence -policy policy.revive.json .
 ```
 
 The above command runs `dfence` tu enforce constraints described in the file
-`myConstraints.json` and over all the packages in the current directory.
+`policy.revive.json` and over all the packages in the current directory.
