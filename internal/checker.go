@@ -3,6 +3,7 @@ package internal
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 
@@ -42,6 +43,7 @@ func (c Checker) CheckPkg(pkg string, out chan<- CheckResult, wg *sync.WaitGroup
 	warns := []error{}
 
 	applicableConstraints := c.getApplicableConstraints(pkg)
+	log.Printf("Checking (%d constraints) package %s", len(applicableConstraints), pkg)
 	if len(applicableConstraints) == 0 {
 		out <- buildCheckResult(warns, errs)
 		return
@@ -89,6 +91,10 @@ func checkAllowConstraint(c CanonicalConstraint, pkg string, pkgDeps []depth.Pkg
 
 		ok := false
 		for _, t := range c.targetPatterns {
+			if t == "" {
+				continue // TODO check why this happens
+			}
+			log.Printf("allow: %s contains %s ?", d.Name, t)
 			matches := strings.Contains(d.Name, t)
 			if matches {
 				ok = true
@@ -144,6 +150,7 @@ func (c Checker) getApplicableConstraints(pkg string) (constraints []CanonicalCo
 	constraints = []CanonicalConstraint{}
 	for _, constr := range c.constraints {
 		for _, mp := range constr.componentPatterns {
+			log.Printf("[DEBUG] %s contains %s", pkg, mp)
 			if strings.Contains(pkg, mp) {
 				constraints = append(constraints, constr)
 				break

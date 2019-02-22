@@ -1,15 +1,30 @@
 {
-    "modules":{
-    "das": "daas/gateway",
-    "wslibs":"pfneo-ws-libs",
-    "wsclients":"pfneo-ws-clients",
-    "vendors": "cloud.google.com  github.com  golang.org  google.golang.org  gopkg.in  k8s.io"
+    "components":{
+        "das": "daas/gateway",
+        "get-capa": "common/getcapabilities",
+        "paas-gtw":"paas/gateway",
+        "paas-svc": "paas/orthorectification",
+        "wslibs":"pfneo-ws-libs",
+        "wsclients":"pfneo-ws-clients",
+        "vendors": "cloud.google.com  github.com  golang.org  google.golang.org  gopkg.in  k8s.io"
     },
     "constraints":[
         {
-            "modules":"das multitest",
+            "scope":"das",
             "kind":"allow",
-            "targets":"wslibs wsclients vendors",
+            "deps":"wslibs wsclients vendors",
+            "onbreak":"error"
+        },
+        {
+            "scope":"paas-svc",
+            "kind":"allow",
+            "deps":"wslibs wsclients vendors",
+            "onbreak":"error"
+        },
+        {
+            "scope":"paas-gtw",
+            "kind":"allow",
+            "deps":"paas-svc vendors paas-gtw wslibs wsclients get-capa",
             "onbreak":"error"
         }
     ]

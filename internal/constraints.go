@@ -3,9 +3,9 @@ package internal
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
+	"log"
 	"regexp"
 	"strings"
 )
@@ -55,7 +55,7 @@ func NewPolicyFromJSON(stream io.Reader) (Policy, error) {
 
 	err := json.Unmarshal(buf.Bytes(), &policy)
 	if err != nil {
-		return Policy{}, errors.New(fmt.Sprintf("Unable to read policy from JSON file: %v", err))
+		return Policy{}, fmt.Errorf("Unable to read policy from JSON file: %v", err)
 	}
 
 	return policy, nil
@@ -73,11 +73,16 @@ type CanonicalConstraint struct {
 func BuildCanonicalConstraints(p Policy) ([]CanonicalConstraint, error) {
 	r := []CanonicalConstraint{}
 
+	log.Printf("Policy:%+v", p)
 	componentPatterns := extractComponentsPatterns(p.Components)
 
 	for _, c := range p.Constraints {
 		newConstraint := CanonicalConstraint{}
 		for _, m := range strings.Split(c.Scope, patternSeparator) {
+			if m == "" {
+				continue
+			}
+
 			p, ok := componentPatterns[m]
 			if !ok {
 				return r, fmt.Errorf("component '%s' undefined", m)
@@ -87,6 +92,10 @@ func BuildCanonicalConstraints(p Policy) ([]CanonicalConstraint, error) {
 		}
 		newConstraint.kind = c.Kind
 		for _, d := range strings.Split(c.Deps, patternSeparator) {
+			if d == "" {
+				continue
+			}
+
 			p, ok := componentPatterns[d]
 			if !ok {
 				return r, fmt.Errorf("component '%s' undefined", d)

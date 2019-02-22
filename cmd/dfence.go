@@ -4,7 +4,6 @@ package main
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -33,8 +32,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to retrieve packages using the selector '%s': %v", pkgSelector, err)
 	}
-
-	fmt.Printf("Pacages %+v ?\n", pkgs)
 
 	constraints, err := internal.BuildCanonicalConstraints(policy)
 	if err != nil {
