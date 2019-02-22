@@ -19,7 +19,7 @@ type Checker struct {
 func NewChecker(p Policy, l Logger) (Checker, error) {
 	c, err := p.buildCanonicalConstraints()
 	if err != nil {
-		return Checker{}, fmt.Errorf("Unable to aggregate policy constraints: %v", err)
+		return Checker{}, fmt.Errorf("unable to aggregate policy constraints: %v", err)
 	}
 
 	return Checker{constraints: c, logger: l}, nil
@@ -61,7 +61,7 @@ func (c Checker) CheckPkg(pkg string, out chan<- CheckResult, wg *sync.WaitGroup
 
 	err := t.Resolve(pkg)
 	if err != nil {
-		out <- buildCheckResult(warns, append(errs, fmt.Errorf("[%s] Unable to get dependencies of %s: %v", Error, pkg, err)))
+		out <- buildCheckResult(warns, append(errs, fmt.Errorf("unable to get dependencies of %s: %v", pkg, err)))
 		return
 	}
 
@@ -78,7 +78,7 @@ func (c Checker) CheckPkg(pkg string, out chan<- CheckResult, wg *sync.WaitGroup
 			warns = append(warns, w...)
 			errs = append(errs, e...)
 		default:
-			errs = append(errs, fmt.Errorf("[%s] Unable to check constraints of kind `%s`", Error, kind))
+			errs = append(errs, fmt.Errorf("unable to check constraints of kind `%s`", kind))
 		}
 	}
 
@@ -161,6 +161,11 @@ func (c Checker) getApplicableConstraints(pkg string) (constraints []CanonicalCo
 			}
 		}
 	}
+
+	if len(constraints) == 0 {
+		c.logger.Warningf("%s does not have constraints.", pkg)
+	}
+	c.logger.Debugf("%s constraints %+v", pkg, constraints)
 
 	return constraints
 }
