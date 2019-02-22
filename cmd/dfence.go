@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"errors"
 	"flag"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -32,15 +31,14 @@ func main() {
 		pkgFlag = f.Args()[0:1]
 	}
 
-	stream := os.Stdin
-	if policyFile != "" {
-		var err error
-		stream, err = os.Open(policyFile)
-		if err != nil {
-			logger.Fatalf("Unable to open policy file %s: %+v", policyFile, err)
-		}
-	} else {
-		logger.Infof("Policy file not set, reading it from stdin...")
+	if policyFile == "" {
+		logger.Fatalf("Policy file not set.")
+	}
+
+	var err error
+	stream, err := os.Open(policyFile)
+	if err != nil {
+		logger.Fatalf("Unable to open policy file %s: %+v", policyFile, err)
 	}
 
 	policy, err := dfence.NewPolicyFromJSON(stream)
@@ -54,15 +52,14 @@ func main() {
 	if err != nil {
 		logger.Fatalf("Unable to retrieve packages using the selector '%s': %v", pkgSelector, err)
 	}
-
-	constraints, err := dfence.BuildCanonicalConstraints(policy)
-	if err != nil {
-		logger.Fatalf("Unable to aggregate policy constraints: %v", err)
-	}
-	checker := dfence.NewChecker(constraints, logger)
-
 	pkgCount := len(pkgs)
 	logger.Infof("Will check dependencies of %d package(s).", pkgCount)
+
+	checker, err := dfence.NewChecker(policy, logger)
+	if err != nil {
+		logger.Fatalf("Unable to run the checker: %v", err)
+	}
+
 	status := 0
 	var wg sync.WaitGroup
 	out := make(chan dfence.CheckResult, pkgCount)
@@ -114,23 +111,23 @@ func buildlogger(level string) dfence.Logger {
 	case "none":
 		// do nothing
 	case "debug":
-		debug = buildLoggerFunc(os.Stdout, "[DEBUG] ", color.New(color.FgCyan))
+		debug = buildLoggerFunc("[DEBUG] ", color.New(color.FgCyan))
 		fallthrough
 	case "info":
-		info = buildLoggerFunc(os.Stdout, "[INFO] ", color.New(color.FgGreen))
+		info = buildLoggerFunc("[INFO] ", color.New(color.FgGreen))
 		fallthrough
 	case "warn":
-		warn = buildLoggerFunc(os.Stdout, "[WARN] ", color.New(color.FgBlue))
+		warn = buildLoggerFunc("[WARN] ", color.New(color.FgBlue))
 		fallthrough
 	default:
-		err = buildLoggerFunc(os.Stderr, "[ERROR] ", color.New(color.FgRed))
+		err = buildLoggerFunc("[ERROR] ", color.New(color.FgRed))
 	}
 
-	fatal := buildLoggerFunc(os.Stderr, "[FATAL] ", color.New(color.FgRed))
+	fatal := buildLoggerFunc("[FATAL] ", color.New(color.FgRed))
 	return dfence.NewLogger(debug, info, warn, err, fatal)
 }
 
-func buildLoggerFunc(w io.Writer, prefix string, c *color.Color) dfence.LoggerFunc {
+func buildLoggerFunc(prefix string, c *color.Color) dfence.LoggerFunc {
 	return func(msg string, vars ...interface{}) {
 		log.Println(c.Sprintf(prefix+msg, vars...))
 	}

@@ -57,7 +57,7 @@ func NewPolicyFromJSON(stream io.Reader) (Policy, error) {
 
 	err := json.Unmarshal(buf.Bytes(), &policy)
 	if err != nil {
-		return Policy{}, fmt.Errorf("Unable to read policy from JSON file: %v", err)
+		return Policy{}, fmt.Errorf("unable to read policy from JSON file: %v", err)
 	}
 
 	policy.classIds = getSortedKeys(policy.Classes)
@@ -84,8 +84,8 @@ type CanonicalConstraint struct {
 	onBreak           errorLevel
 }
 
-// BuildCanonicalConstraints yields canonical constraints from a dependency policy
-func BuildCanonicalConstraints(p Policy) ([]CanonicalConstraint, error) {
+// buildCanonicalConstraints yields canonical constraints from a dependency policy
+func (p Policy) buildCanonicalConstraints() ([]CanonicalConstraint, error) {
 	r := []CanonicalConstraint{}
 
 	componentPatterns := p.extractComponentsPatterns()
@@ -101,12 +101,12 @@ func BuildCanonicalConstraints(p Policy) ([]CanonicalConstraint, error) {
 				continue
 			}
 
-			p, ok := resolveId(id, componentPatterns, classesPatterns)
+			patterns, ok := resolveId(id, componentPatterns, classesPatterns)
 			if !ok {
 				return r, fmt.Errorf("undefined id '%s' in constraint scope '%s' ", id, c.Scope)
 			}
 
-			newConstraint.componentPatterns = append(newConstraint.componentPatterns, p...)
+			newConstraint.componentPatterns = append(newConstraint.componentPatterns, patterns...)
 		}
 		newConstraint.kind = c.Kind
 		for _, id := range strings.Split(c.Deps, patternSeparator) {
@@ -114,12 +114,12 @@ func BuildCanonicalConstraints(p Policy) ([]CanonicalConstraint, error) {
 				continue
 			}
 
-			p, ok := resolveId(id, componentPatterns, classesPatterns)
+			patterns, ok := resolveId(id, componentPatterns, classesPatterns)
 			if !ok {
 				return r, fmt.Errorf("undefined id '%s' in constraint deps '%s'", id, c.Deps)
 			}
 
-			newConstraint.depPatterns = append(newConstraint.depPatterns, p...)
+			newConstraint.depPatterns = append(newConstraint.depPatterns, patterns...)
 		}
 		newConstraint.onBreak = c.OnBreak
 

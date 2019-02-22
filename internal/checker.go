@@ -16,8 +16,13 @@ type Checker struct {
 }
 
 // NewChecker yields a dependencies constraint checker
-func NewChecker(c []CanonicalConstraint, l Logger) Checker {
-	return Checker{constraints: c, logger: l}
+func NewChecker(p Policy, l Logger) (Checker, error) {
+	c, err := p.buildCanonicalConstraints()
+	if err != nil {
+		return Checker{}, fmt.Errorf("Unable to aggregate policy constraints: %v", err)
+	}
+
+	return Checker{constraints: c, logger: l}, nil
 }
 
 // String yields a string representation of this checker
@@ -103,7 +108,7 @@ func (c Checker) checkAllowConstraint(constraint CanonicalConstraint, pkg string
 		}
 
 		if !ok {
-			warns, errs = c.appendByLevel(warns, errs, constraint.onBreak, fmt.Sprintf("[%s] %s depends on %s", constraint.onBreak, pkg, d.Name))
+			warns, errs = c.appendByLevel(warns, errs, constraint.onBreak, fmt.Sprintf("%s depends on %s", pkg, d.Name))
 		}
 	}
 
@@ -129,7 +134,7 @@ func (c Checker) checkForbidConstraint(constraint CanonicalConstraint, pkg strin
 		}
 
 		if !ok {
-			warns, errs = c.appendByLevel(warns, errs, constraint.onBreak, fmt.Sprintf("[%s] %s depends on %s", constraint.onBreak, pkg, d.Name))
+			warns, errs = c.appendByLevel(warns, errs, constraint.onBreak, fmt.Sprintf("%s depends on %s", pkg, d.Name))
 		}
 	}
 
