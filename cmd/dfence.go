@@ -20,8 +20,8 @@ func main() {
 	var loggerLevel string
 	args := os.Args[1:]
 	f := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	f.StringVar(&policyFile, "policy", "", "policy file (defaults to stdin)")
-	f.StringVar(&loggerLevel, "log", "info", "log level: none, error, warn, info (default), debug)")
+	f.StringVar(&policyFile, "policy", "", "path to dependencies policy file ")
+	f.StringVar(&loggerLevel, "log", "info", "log level: none, error, warn, info, debug")
 	f.Parse(args)
 
 	logger := buildlogger(loggerLevel)
