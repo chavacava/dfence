@@ -7,6 +7,9 @@
         "test":"test",
         "vendored":"github.com/fatih github.com/olekukonko/tablewriter github.com/pkg/errors golang.org/x"
     },
+    "classes":{
+        "all":"cli formatter lint rule test vendored"
+    },
     "constraints":[
         {
             "scope":"cli",
@@ -35,7 +38,7 @@
         {
             "scope":"test",
             "kind":"allow",
-            "deps":"lint rule vendored",
+            "deps":"all",
             "onbreak":"error"
         }
 
