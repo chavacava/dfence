@@ -42,10 +42,11 @@ type Constraint struct {
 
 // Policy represents the set of dependency constraints to enforce
 type Policy struct {
-	Components  map[string]interface{}
-	Classes     map[string]interface{}
-	classIds    []string // **sorted** list of class ids
-	Constraints []Constraint
+	Components           map[string]interface{}
+	Classes              map[string]interface{}
+	classIds             []string // **sorted** list of class ids
+	Constraints          []Constraint
+	canonicalConstraints []CanonicalConstraint
 }
 
 // NewPolicyFromJSON builds a Policy from a JSON
@@ -62,48 +63,48 @@ func NewPolicyFromJSON(stream io.Reader) (Policy, error) {
 
 	policy.classIds = getSortedKeys(policy.Classes)
 
-	return policy, nil
-}
-
-func getSortedKeys(m map[string]interface{}) []string {
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
+	err = policy.buildCanonicalConstraints()
+	if err != nil {
+		return Policy{}, fmt.Errorf("unable to aggregate policy constraints: %v", err)
 	}
 
-	sort.Strings(keys)
-
-	return keys
+	return policy, nil
 }
 
 // CanonicalConstraint is a plain raw (ie without references to components) dependency constraint
 type CanonicalConstraint struct {
+	scope             string // scope from which this constraint was built
 	componentPatterns []string
 	kind              constraintKind
 	depPatterns       []string
 	onBreak           errorLevel
 }
 
-// buildCanonicalConstraints yields canonical constraints from a dependency policy
-func (p Policy) buildCanonicalConstraints() ([]CanonicalConstraint, error) {
+// buildCanonicalConstraints populates canonical constraints of a dependency policy
+func (p *Policy) buildCanonicalConstraints() error {
+	if len(p.canonicalConstraints) > 0 {
+		return nil // avoid building twice
+	}
+
 	r := []CanonicalConstraint{}
 
 	componentPatterns := p.extractComponentsPatterns()
 	classesPatterns, err := p.extractClassesPatterns(componentPatterns)
 	if err != nil {
-		return r, err
+		return err
 	}
 
 	for _, c := range p.Constraints {
 		newConstraint := CanonicalConstraint{}
+		newConstraint.scope = c.Scope
 		for _, id := range strings.Split(c.Scope, patternSeparator) {
 			if id == "" {
 				continue
 			}
 
-			patterns, ok := resolveId(id, componentPatterns, classesPatterns)
+			patterns, ok := resolveID(id, componentPatterns, classesPatterns)
 			if !ok {
-				return r, fmt.Errorf("undefined id '%s' in constraint scope '%s' ", id, c.Scope)
+				return fmt.Errorf("undefined id '%s' in constraint scope '%s' ", id, c.Scope)
 			}
 
 			newConstraint.componentPatterns = append(newConstraint.componentPatterns, patterns...)
@@ -114,9 +115,9 @@ func (p Policy) buildCanonicalConstraints() ([]CanonicalConstraint, error) {
 				continue
 			}
 
-			patterns, ok := resolveId(id, componentPatterns, classesPatterns)
+			patterns, ok := resolveID(id, componentPatterns, classesPatterns)
 			if !ok {
-				return r, fmt.Errorf("undefined id '%s' in constraint deps '%s'", id, c.Deps)
+				return fmt.Errorf("undefined id '%s' in constraint deps '%s'", id, c.Deps)
 			}
 
 			newConstraint.depPatterns = append(newConstraint.depPatterns, patterns...)
@@ -126,7 +127,24 @@ func (p Policy) buildCanonicalConstraints() ([]CanonicalConstraint, error) {
 		r = append(r, newConstraint)
 	}
 
-	return r, nil
+	p.canonicalConstraints = r
+
+	return nil
+}
+
+// GetApplicableConstraints yields constraints applicable to a given package
+func (p Policy) GetApplicableConstraints(pkg string) (constraints []CanonicalConstraint) {
+	constraints = []CanonicalConstraint{}
+	for _, c := range p.canonicalConstraints {
+		for _, p := range c.componentPatterns {
+			if strings.Contains(pkg, p) {
+				constraints = append(constraints, c)
+				break
+			}
+		}
+	}
+
+	return constraints
 }
 
 func (p Policy) extractComponentsPatterns() map[string][]string {
@@ -164,13 +182,24 @@ func (p Policy) extractClassesPatterns(compPatterns map[string][]string) (map[st
 	return r, nil
 }
 
-func resolveId(id string, comps, cls map[string][]string) ([]string, bool) {
+func resolveID(id string, comps, cls map[string][]string) ([]string, bool) {
 	p, ok := cls[id]
 	if !ok {
 		p, ok = comps[id]
 	}
 
 	return p, ok
+}
+
+func getSortedKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+
+	sort.Strings(keys)
+
+	return keys
 }
 
 func buildRegExprs(from string) []*regexp.Regexp {

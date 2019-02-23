@@ -11,23 +11,18 @@ import (
 
 // Checker models a dependencies constraints checker
 type Checker struct {
-	constraints []CanonicalConstraint
-	logger      Logger
+	policy Policy
+	logger Logger
 }
 
 // NewChecker yields a dependencies constraint checker
 func NewChecker(p Policy, l Logger) (Checker, error) {
-	c, err := p.buildCanonicalConstraints()
-	if err != nil {
-		return Checker{}, fmt.Errorf("unable to aggregate policy constraints: %v", err)
-	}
-
-	return Checker{constraints: c, logger: l}, nil
+	return Checker{policy: p, logger: l}, nil
 }
 
 // String yields a string representation of this checker
 func (c Checker) String() string {
-	return fmt.Sprintf("Checker constraints: %+v", c.constraints)
+	return fmt.Sprintf("Checker constraints: %+v", c.policy.canonicalConstraints)
 }
 
 // CheckResult models the result of a dependency checking
@@ -47,9 +42,11 @@ func (c Checker) CheckPkg(pkg string, out chan<- CheckResult, wg *sync.WaitGroup
 	errs := []error{}
 	warns := []error{}
 
-	applicableConstraints := c.getApplicableConstraints(pkg)
+	applicableConstraints := c.policy.GetApplicableConstraints(pkg)
+
 	c.logger.Debugf("Checking (%d constraints) package %s", len(applicableConstraints), pkg)
 	if len(applicableConstraints) == 0 {
+		c.logger.Warningf("%s does not have constraints.", pkg)
 		out <- buildCheckResult(warns, errs)
 		return
 	}
@@ -149,23 +146,4 @@ func (c Checker) appendByLevel(w, e []error, level errorLevel, msg string) (warn
 	}
 
 	return w, append(e, newErr)
-}
-
-func (c Checker) getApplicableConstraints(pkg string) (constraints []CanonicalConstraint) {
-	constraints = []CanonicalConstraint{}
-	for _, constr := range c.constraints {
-		for _, mp := range constr.componentPatterns {
-			if strings.Contains(pkg, mp) {
-				constraints = append(constraints, constr)
-				break
-			}
-		}
-	}
-
-	if len(constraints) == 0 {
-		c.logger.Warningf("%s does not have constraints.", pkg)
-	}
-	c.logger.Debugf("%s constraints %+v", pkg, constraints)
-
-	return constraints
 }
