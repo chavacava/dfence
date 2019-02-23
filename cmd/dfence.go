@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -18,10 +19,12 @@ import (
 func main() {
 	var policyFile string
 	var loggerLevel string
+	var mode string
 	args := os.Args[1:]
 	f := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	f.StringVar(&policyFile, "policy", "", "path to dependencies policy file ")
 	f.StringVar(&loggerLevel, "log", "info", "log level: none, error, warn, info, debug")
+	f.StringVar(&mode, "mode", "check", "running mode: check, info")
 	f.Parse(args)
 
 	logger := buildlogger(loggerLevel)
@@ -47,20 +50,36 @@ func main() {
 	}
 
 	pkgSelector := pkgFlag[0]
-	logger.Infof("Retrieving packages to check...")
+	logger.Infof("Retrieving packages...")
 	pkgs, err := retrievePackages(pkgSelector)
 	if err != nil {
 		logger.Fatalf("Unable to retrieve packages using the selector '%s': %v", pkgSelector, err)
 	}
-	pkgCount := len(pkgs)
-	logger.Infof("Will check dependencies of %d package(s).", pkgCount)
+	logger.Infof("Will work with %d package(s).", len(pkgs))
 
-	checker, err := dfence.NewChecker(policy, logger)
+	switch mode {
+	case "check":
+		err = check(policy, pkgs, logger)
+	case "info":
+		err = info(policy, pkgs, logger)
+	default:
+		logger.Fatalf("Unknown running mode '%s'", mode)
+	}
+
+	if err != nil {
+		logger.Errorf(err.Error())
+		os.Exit(1)
+	}
+}
+
+func check(p dfence.Policy, pkgs []string, logger dfence.Logger) error {
+	checker, err := dfence.NewChecker(p, logger)
 	if err != nil {
 		logger.Fatalf("Unable to run the checker: %v", err)
 	}
 
-	status := 0
+	pkgCount := len(pkgs)
+	errCount := 0
 	var wg sync.WaitGroup
 	out := make(chan dfence.CheckResult, pkgCount)
 	for _, pkg := range pkgs {
@@ -79,12 +98,33 @@ func main() {
 		for _, e := range result.Errs {
 			logger.Errorf(e.Error())
 		}
-		if len(result.Errs) > 0 {
-			status = 1
+
+		errCount += len(result.Errs)
+	}
+
+	if errCount > 0 {
+		return fmt.Errorf("found %d error(s)", errCount)
+	}
+
+	return nil
+}
+
+func info(p dfence.Policy, pkgs []string, logger dfence.Logger) error {
+	for _, pkg := range pkgs {
+		cs := p.GetApplicableConstraints(pkg)
+		if len(cs) == 0 {
+			logger.Warningf("No constraints for %s", pkg)
+			continue
+		}
+		logger.Infof("Constraints for %s:", pkg)
+		for _, c := range cs {
+			for _, l := range strings.Split(c.String(), "\n") {
+				logger.Infof("\t%+v", l)
+			}
 		}
 	}
 
-	os.Exit(status)
+	return nil
 }
 
 func retrievePackages(pkgSelector string) ([]string, error) {
@@ -117,13 +157,13 @@ func buildlogger(level string) dfence.Logger {
 		info = buildLoggerFunc("[INFO] ", color.New(color.FgGreen))
 		fallthrough
 	case "warn":
-		warn = buildLoggerFunc("[WARN] ", color.New(color.FgBlue))
+		warn = buildLoggerFunc("[WARN] ", color.New(color.FgHiYellow))
 		fallthrough
 	default:
-		err = buildLoggerFunc("[ERROR] ", color.New(color.FgRed))
+		err = buildLoggerFunc("[ERROR] ", color.New(color.BgHiRed))
 	}
 
-	fatal := buildLoggerFunc("[FATAL] ", color.New(color.FgRed))
+	fatal := buildLoggerFunc("[FATAL] ", color.New(color.BgRed))
 	return dfence.NewLogger(debug, info, warn, err, fatal)
 }
 

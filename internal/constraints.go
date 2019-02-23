@@ -80,6 +80,10 @@ type CanonicalConstraint struct {
 	onBreak           errorLevel
 }
 
+func (c CanonicalConstraint) String() string {
+	return fmt.Sprintf("scope\t%s\ncomps\t%v\nkind\t%v\ndeps\t%v\nlevel\t%v", c.scope, c.componentPatterns, c.kind, c.depPatterns, c.onBreak)
+}
+
 // buildCanonicalConstraints populates canonical constraints of a dependency policy
 func (p *Policy) buildCanonicalConstraints() error {
 	if len(p.canonicalConstraints) > 0 {
