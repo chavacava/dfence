@@ -71,12 +71,50 @@ func NewPolicyFromJSON(stream io.Reader) (Policy, error) {
 	return policy, nil
 }
 
+type pattern interface {
+	match(string) bool
+	String() string
+}
+
+type rawPattern struct {
+	pattern string
+}
+
+func (p rawPattern) match(s string) bool {
+	return strings.Contains(s, p.pattern)
+}
+
+func (p rawPattern) String() string {
+	return p.pattern
+}
+
+type rePatter struct {
+	pattern *regexp.Regexp
+}
+
+func (p rePatter) match(s string) bool {
+	return p.pattern.MatchString(s)
+}
+
+func (p rePatter) String() string {
+	return p.pattern.String()
+}
+
+func newREPattern(re string) (rePatter, error) {
+	r, err := regexp.Compile(re)
+	if err != nil {
+		return rePatter{}, fmt.Errorf("unable to compile regexp '%s': %v", re, err)
+	}
+
+	return rePatter{pattern: r}, nil
+}
+
 // CanonicalConstraint is a plain raw (ie without references to components) dependency constraint
 type CanonicalConstraint struct {
 	scope             string // scope from which this constraint was built
-	componentPatterns []string
+	componentPatterns []pattern
 	kind              constraintKind
-	depPatterns       []string
+	depPatterns       []pattern
 	onBreak           errorLevel
 }
 
@@ -111,7 +149,11 @@ func (p *Policy) buildCanonicalConstraints() error {
 				return fmt.Errorf("undefined id '%s' in constraint scope '%s' ", id, c.Scope)
 			}
 
-			newConstraint.componentPatterns = append(newConstraint.componentPatterns, patterns...)
+			newPatterns, err := buildPatterns(patterns)
+			if err != nil {
+				return err
+			}
+			newConstraint.componentPatterns = append(newConstraint.componentPatterns, newPatterns...)
 		}
 		newConstraint.kind = c.Kind
 		for _, id := range strings.Split(c.Deps, patternSeparator) {
@@ -124,7 +166,12 @@ func (p *Policy) buildCanonicalConstraints() error {
 				return fmt.Errorf("undefined id '%s' in constraint deps '%s'", id, c.Deps)
 			}
 
-			newConstraint.depPatterns = append(newConstraint.depPatterns, patterns...)
+			newPatterns, err := buildPatterns(patterns)
+			if err != nil {
+				return err
+			}
+
+			newConstraint.depPatterns = append(newConstraint.depPatterns, newPatterns...)
 		}
 		newConstraint.onBreak = c.OnBreak
 
@@ -136,12 +183,34 @@ func (p *Policy) buildCanonicalConstraints() error {
 	return nil
 }
 
+// prefixREPattern prefix of regular expression patterns
+const prefixREPattern = "#"
+
+func buildPatterns(sp []string) ([]pattern, error) {
+	result := []pattern{}
+	for _, s := range sp {
+		if strings.HasPrefix(s, prefixREPattern) {
+			r, err := newREPattern(strings.TrimLeft(s, prefixREPattern))
+			if err != nil {
+				return nil, err
+			}
+
+			result = append(result, r)
+			continue
+		}
+
+		result = append(result, rawPattern{pattern: s})
+	}
+
+	return result, nil
+}
+
 // GetApplicableConstraints yields constraints applicable to a given package
 func (p Policy) GetApplicableConstraints(pkg string) (constraints []CanonicalConstraint) {
 	constraints = []CanonicalConstraint{}
 	for _, c := range p.canonicalConstraints {
 		for _, p := range c.componentPatterns {
-			if strings.Contains(pkg, p) {
+			if p.match(pkg) {
 				constraints = append(constraints, c)
 				break
 			}

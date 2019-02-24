@@ -3,7 +3,6 @@ package internal
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/KyleBanks/depth"
@@ -93,12 +92,8 @@ func (c Checker) checkAllowConstraint(constraint CanonicalConstraint, pkg string
 
 		ok := false
 		for _, t := range constraint.depPatterns {
-			if t == "" {
-				continue // TODO check why this happens
-			}
-			c.logger.Debugf("allow: %s contains %s ?", d.Name, t)
-			matches := strings.Contains(d.Name, t)
-			if matches {
+			c.logger.Debugf("allow: %s matches %s ?", d.Name, t.String())
+			if t.match(d.Name) {
 				ok = true
 				break
 			}
@@ -123,8 +118,8 @@ func (c Checker) checkForbidConstraint(constraint CanonicalConstraint, pkg strin
 
 		ok := true
 		for _, t := range constraint.depPatterns {
-			matches := strings.Contains(d.Name, t)
-			if matches {
+			c.logger.Debugf("forbid: %s matches %s ?", d.Name, t.String())
+			if t.match(d.Name) {
 				ok = false
 				break
 			}
