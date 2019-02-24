@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"sync"
 
 	"github.com/spf13/viper"
 
@@ -69,15 +68,12 @@ func check(p dfence.Policy, pkgs []string, logger dfence.Logger) error {
 
 	pkgCount := len(pkgs)
 	errCount := 0
-	var wg sync.WaitGroup
 	out := make(chan dfence.CheckResult, pkgCount)
 	for _, pkg := range pkgs {
-		wg.Add(1)
-		go checker.CheckPkg(pkg, out, &wg)
+		go checker.CheckPkg(pkg, out)
 	}
 
-	wg.Wait()
-	logger.Infof("Check done.")
+	logger.Infof("Checking...")
 
 	for i := 0; i < pkgCount; i++ {
 		result := <-out
@@ -90,6 +86,8 @@ func check(p dfence.Policy, pkgs []string, logger dfence.Logger) error {
 
 		errCount += len(result.Errs)
 	}
+
+	logger.Infof("Check done")
 
 	if errCount > 0 {
 		return fmt.Errorf("found %d error(s)", errCount)

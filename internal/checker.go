@@ -3,7 +3,6 @@ package internal
 import (
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/KyleBanks/depth"
 )
@@ -35,9 +34,7 @@ func buildCheckResult(warns, errs []error) CheckResult {
 }
 
 // CheckPkg checks if the given package respects the dependency constraints of this checker
-func (c Checker) CheckPkg(pkg string, out chan<- CheckResult, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+func (c Checker) CheckPkg(pkg string, out chan<- CheckResult) {
 	errs := []error{}
 	warns := []error{}
 
