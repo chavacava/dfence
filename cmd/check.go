@@ -96,6 +96,7 @@ func check(p dfence.Policy, pkgs []string, logger dfence.Logger) error {
 	return nil
 }
 
+// retrievePackages yields the all packages matching the given selector
 func retrievePackages(pkgSelector string) ([]string, error) {
 	r := []string{}
 	cmd := exec.Command("go", "list", pkgSelector)
