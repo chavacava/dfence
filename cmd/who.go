@@ -14,9 +14,9 @@ import (
 var graph bool
 
 var cmdWho = &cobra.Command{
-	Use:   "who [package] [package]",
-	Short: "explains who depends on a package",
-	Long:  "explains who depends on a package",
+	Use:   "who [package] [package list]",
+	Short: "explains what packages, from a package, list depend on a package",
+	Long:  "explains what packages, from a package, list depend on a package",
 	Args:  cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(dfence.Logger)
@@ -41,6 +41,7 @@ var cmdWho = &cobra.Command{
 				}
 
 				writeExplain(logger, *t.Root, []string{}, pkgTarget)
+				logger.Debugf("%s done.", pkg)
 				wg.Done()
 			}(p)
 		}
