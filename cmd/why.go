@@ -3,6 +3,7 @@ package cmd
 import (
 	"log"
 	"strings"
+	"sync"
 
 	"github.com/spf13/viper"
 
@@ -43,7 +44,15 @@ func writeExplain(logger dfence.Logger, pkg depth.Pkg, stack []string, explain s
 	if pkg.Name == explain {
 		logger.Infof(strings.Join(stack, " -> "))
 	}
+
+	var wg sync.WaitGroup
 	for _, p := range pkg.Deps {
-		writeExplain(logger, p, stack, explain)
+		wg.Add(1)
+		go func(pkg depth.Pkg) {
+			writeExplain(logger, pkg, stack, explain)
+			wg.Done()
+		}(p)
 	}
+
+	wg.Wait()
 }
