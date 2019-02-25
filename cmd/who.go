@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log"
+	"sync"
 
 	"github.com/spf13/viper"
 
@@ -29,15 +30,22 @@ var cmdWho = &cobra.Command{
 		if err != nil {
 			logger.Fatalf("Unable to retrieve packages using the selector '%s': %v", pkgSelector, err)
 		}
+		var wg sync.WaitGroup
 		for _, p := range pkgs {
-			var t depth.Tree
-			err := t.Resolve(p)
-			if err != nil {
-				logger.Warningf("Unable to analyze package '%s': %v", p, err)
-			}
+			wg.Add(1)
+			go func(pkg string) {
+				var t depth.Tree
+				err := t.Resolve(pkg)
+				if err != nil {
+					logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
+				}
 
-			writeExplain(logger, *t.Root, []string{}, pkgTarget)
+				writeExplain(logger, *t.Root, []string{}, pkgTarget)
+				wg.Done()
+			}(p)
 		}
+
+		wg.Wait()
 	},
 }
 
