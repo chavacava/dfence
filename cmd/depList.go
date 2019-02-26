@@ -15,6 +15,7 @@ import (
 )
 
 var maxDepth int
+var format string
 
 var cmdDepsList = &cobra.Command{
 	Use:   "list [package list]",
@@ -48,10 +49,15 @@ var cmdDepsList = &cobra.Command{
 			}
 
 			buf := new(bytes.Buffer)
-			writePkg(buf, *t.Root, []bool{}, false)
+			switch format {
+			case "plain":
+				writeDeps(buf, *t.Root)
+			case "tree":
+				writeDepsTree(buf, *t.Root, []bool{}, false)
+			}
 
-			tree := buf.String()
-			for _, l := range strings.Split(tree, "\n") {
+			out := buf.String()
+			for _, l := range strings.Split(out, "\n") {
 				logger.Infof("%s", l)
 			}
 		}
@@ -64,8 +70,15 @@ const (
 	outputPrefixLast = "└ "
 )
 
-// writePkg borrowed from  https://github.com/KyleBanks/depth/blob/master/cmd/depth/depth.go
-func writePkg(w io.Writer, p depth.Pkg, status []bool, isLast bool) {
+func writeDeps(w io.Writer, p depth.Pkg) {
+	fmt.Fprintf(w, "%s\n", p.String())
+	for _, d := range p.Deps {
+		writeDeps(w, d)
+	}
+}
+
+// writeDepsTree borrowed from  https://github.com/KyleBanks/depth/blob/master/cmd/depth/depth.go
+func writeDepsTree(w io.Writer, p depth.Pkg, status []bool, isLast bool) {
 	for i, isOpen := range status {
 		if i == 0 {
 			fmt.Fprintf(w, " ")
@@ -96,11 +109,12 @@ func writePkg(w io.Writer, p depth.Pkg, status []bool, isLast bool) {
 	fmt.Fprintf(w, "%v%v\n", prefix, p.String())
 
 	for idx, d := range p.Deps {
-		writePkg(w, d, status, idx == len(p.Deps)-1)
+		writeDepsTree(w, d, status, idx == len(p.Deps)-1)
 	}
 }
 
 func init() {
 	rootCmd.AddCommand(cmdDepsList)
 	cmdDepsList.Flags().IntVar(&maxDepth, "maxdepth", 0, "generate a graph")
+	cmdDepsList.Flags().StringVar(&format, "format", "plain", "output format: plain, tree")
 }
