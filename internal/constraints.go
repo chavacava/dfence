@@ -123,6 +123,21 @@ func (c CanonicalConstraint) String() string {
 	return fmt.Sprintf("scope\t%s\ncomps\t%v\nkind\t%v\ndeps\t%v\nlevel\t%v", c.scope, c.componentPatterns, c.kind, c.depPatterns, c.onBreak)
 }
 
+// ComponentsForPackage yields all components matching the given package
+// Ideally, a package should match a single component but it will be not always the case
+func (p *Policy) ComponentsForPackage(pkg string) []string {
+	r := []string{}
+	for k, patterns := range p.canonicalComponents {
+		for _, pat := range patterns {
+			if pat.match(pkg) {
+				r = append(r, k)
+			}
+		}
+	}
+
+	return r
+}
+
 // buildCanonicalConstraints populates canonical constraints of a dependency policy
 func (p *Policy) buildCanonicalConstraints() error {
 	if len(p.canonicalConstraints) > 0 {
