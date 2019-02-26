@@ -43,6 +43,7 @@ type Constraint struct {
 // Policy represents the set of dependency constraints to enforce
 type Policy struct {
 	Components           map[string]interface{}
+	canonicalComponents  map[string][]pattern
 	Classes              map[string]interface{}
 	classIds             []string // **sorted** list of class ids
 	Constraints          []Constraint
@@ -130,8 +131,13 @@ func (p *Policy) buildCanonicalConstraints() error {
 
 	r := []CanonicalConstraint{}
 
-	componentPatterns := p.extractComponentsPatterns()
-	classesPatterns, err := p.extractClassesPatterns(componentPatterns)
+	var err error
+	p.canonicalComponents, err = p.extractComponentsPatterns()
+	if err != nil {
+		return err
+	}
+
+	classesPatterns, err := p.extractClassesPatterns(p.canonicalComponents)
 	if err != nil {
 		return err
 	}
@@ -144,16 +150,12 @@ func (p *Policy) buildCanonicalConstraints() error {
 				continue
 			}
 
-			patterns, ok := resolveID(id, componentPatterns, classesPatterns)
+			patterns, ok := resolveID(id, p.canonicalComponents, classesPatterns)
 			if !ok {
 				return fmt.Errorf("undefined id '%s' in constraint scope '%s' ", id, c.Scope)
 			}
 
-			newPatterns, err := buildPatterns(patterns)
-			if err != nil {
-				return err
-			}
-			newConstraint.componentPatterns = append(newConstraint.componentPatterns, newPatterns...)
+			newConstraint.componentPatterns = append(newConstraint.componentPatterns, patterns...)
 		}
 		newConstraint.kind = c.Kind
 		for _, id := range strings.Split(c.Deps, patternSeparator) {
@@ -161,17 +163,12 @@ func (p *Policy) buildCanonicalConstraints() error {
 				continue
 			}
 
-			patterns, ok := resolveID(id, componentPatterns, classesPatterns)
+			patterns, ok := resolveID(id, p.canonicalComponents, classesPatterns)
 			if !ok {
 				return fmt.Errorf("undefined id '%s' in constraint deps '%s'", id, c.Deps)
 			}
 
-			newPatterns, err := buildPatterns(patterns)
-			if err != nil {
-				return err
-			}
-
-			newConstraint.depPatterns = append(newConstraint.depPatterns, newPatterns...)
+			newConstraint.depPatterns = append(newConstraint.depPatterns, patterns...)
 		}
 		newConstraint.onBreak = c.OnBreak
 
@@ -220,18 +217,22 @@ func (p Policy) GetApplicableConstraints(pkg string) (constraints []CanonicalCon
 	return constraints
 }
 
-func (p Policy) extractComponentsPatterns() map[string][]string {
-	r := map[string][]string{}
+func (p Policy) extractComponentsPatterns() (map[string][]pattern, error) {
+	r := map[string][]pattern{}
 	for k, v := range p.Components {
 		patterns, _ := v.(string) // TODO check type
-		r[k] = strings.Split(patterns, patternSeparator)
+		var err error
+		r[k], err = buildPatterns(strings.Split(patterns, patternSeparator))
+		if err != nil {
+			return r, err
+		}
 	}
 
-	return r
+	return r, nil
 }
 
-func (p Policy) extractClassesPatterns(compPatterns map[string][]string) (map[string][]string, error) {
-	r := map[string][]string{}
+func (p Policy) extractClassesPatterns(compPatterns map[string][]pattern) (map[string][]pattern, error) {
+	r := map[string][]pattern{}
 
 	for _, k := range p.classIds {
 		v, _ := p.Classes[k]
@@ -239,7 +240,6 @@ func (p Policy) extractClassesPatterns(compPatterns map[string][]string) (map[st
 		compRefs := strings.Split(classDef, patternSeparator)
 
 		for _, cr := range compRefs {
-
 			patterns, ok := compPatterns[cr]
 			if !ok {
 				patterns, ok = r[cr]
@@ -255,7 +255,7 @@ func (p Policy) extractClassesPatterns(compPatterns map[string][]string) (map[st
 	return r, nil
 }
 
-func resolveID(id string, comps, cls map[string][]string) ([]string, bool) {
+func resolveID(id string, comps, cls map[string][]pattern) ([]pattern, bool) {
 	p, ok := cls[id]
 	if !ok {
 		p, ok = comps[id]
