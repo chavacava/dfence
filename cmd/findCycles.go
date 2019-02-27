@@ -14,9 +14,9 @@ import (
 )
 
 var cmdFindCycles = &cobra.Command{
-	Use:   "find-cycles [package] [package]",
-	Short: "Searches for dependency cycles among the given packages",
-	Long:  "Searches for dependency cycles among the given packages",
+	Use:   "find-cycles [package selector]",
+	Short: "spots dependency cycles among the given packages",
+	Long:  "spot dependency cycles among the given packages",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(dfence.Logger)
 		if !ok {
