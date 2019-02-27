@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -21,6 +23,17 @@ var cmdFindCycles = &cobra.Command{
 			log.Fatal("Unable to retrieve the logger.") // revive:disable-line:deep-exit
 		}
 
+		var err error
+		stream, err := os.Open(policyFile)
+		if err != nil {
+			logger.Fatalf("Unable to open policy file %s: %+v", policyFile, err)
+		}
+
+		policy, err := dfence.NewPolicyFromJSON(stream)
+		if err != nil {
+			logger.Fatalf("Unable to load policy : %v", err) // revive:disable-line:deep-exit
+		}
+
 		pkgSelector := strings.Join(args, " ")
 		logger.Infof("Retrieving packages...")
 		pkgs, err := retrievePackages(pkgSelector)
@@ -29,69 +42,138 @@ var cmdFindCycles = &cobra.Command{
 		}
 		logger.Infof("Will work with %d package(s).", len(pkgs))
 
-		allDeps := map[string]*depth.Pkg{}
-		for _, pkg := range pkgs {
-			t := depth.Tree{
-				ResolveInternal: true,
-				ResolveTest:     true,
+		pkg2comps, errs := getCompsForPkgs(pkgs, policy)
+		if len(errs) > 0 {
+			for _, e := range errs {
+				logger.Errorf(e.Error())
 			}
-			err := t.Resolve(pkg)
-			if err != nil {
-				logger.Warningf("Skipping package '%s', unable to analyze: %v", pkg, err.Error())
-			}
-			allDeps[t.Root.Name] = t.Root
+			return
 		}
-		cycles := [][]string{}
+
+		allDeps := getAllDeps(pkgs, logger)
+
+		cycles := [][]traceItem{}
 		for _, pkg := range pkgs {
-			cycles = append(cycles, findCycles(pkg, allDeps, logger)...)
+			cycles = append(cycles, findCycles(pkg, allDeps, pkg2comps, logger)...)
 		}
+
 		if len(cycles) == 0 {
 			logger.Infof("No cycles found")
 			return
 		}
 
-		for _, c := range cycles {
-			logger.Errorf("Cycle: %s", strings.Join(c, " -> "))
+		for _, trace := range cycles {
+			logger.Errorf("Cycle: %v", trace)
 		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(cmdFindCycles)
+	cmdFindCycles.Flags().StringVar(&policyFile, "policy", "", "path to dependencies policy file ")
+	cmdFindCycles.MarkFlagRequired("policy")
 }
 
-func findCycles(pkg string, allDeps map[string]*depth.Pkg, logger dfence.Logger) [][]string {
-	cycles := [][]string{}
+func getCompsForPkgs(pkgs []string, p dfence.Policy) (map[string]string, []error) {
+	r := make(map[string]string, len(pkgs))
+	errs := []error{}
 
-	logger.Debugf("Searching cycles for: %s", pkg)
+	for _, pkg := range pkgs {
+		comps, ok := p.ComponentsForPackage(pkg)
+		if !ok {
+			errs = append(errs, fmt.Errorf("unable to check cycles, package %s is not in a component", pkg))
+			continue
+		}
+		if len(comps) > 1 {
+			errs = append(errs, fmt.Errorf("package %s belongs multiple components: %v", pkg, comps))
+			continue
+		}
+
+		r[pkg] = comps[0]
+	}
+
+	return r, errs
+}
+
+func getAllDeps(pkgs []string, logger dfence.Logger) map[string]*depth.Pkg {
+	logger.Debugf("Retrieving dependencies...")
+
+	r := map[string]*depth.Pkg{}
+
+	for _, pkg := range pkgs {
+		t := depth.Tree{
+			ResolveTest: true,
+		}
+		err := t.Resolve(pkg)
+		if err != nil {
+			logger.Warningf("Skipping package '%s', unable to analyze: %v", pkg, err.Error())
+			continue
+		}
+
+		r[pkg] = t.Root
+	}
+
+	logger.Debugf("Retrieving dependencies... done")
+
+	return r
+}
+
+type traceItem struct {
+	component string
+	pkg       string
+}
+
+func (i traceItem) String() string {
+	return fmt.Sprintf("%s (%s)", i.pkg, i.component)
+}
+
+func findCycles(pkg string, allDeps map[string]*depth.Pkg, pkg2comp map[string]string, logger dfence.Logger) [][]traceItem {
+	cycles := [][]traceItem{}
+
+	comp, ok := pkg2comp[pkg]
+	if !ok {
+		logger.Warningf("Skipping package %s: isn't part of any component.", pkg)
+		return cycles
+	}
+
+	logger.Debugf("Searching cycles for: %s of component %s", pkg, comp)
+
+	trace := []traceItem{{component: comp, pkg: pkg}}
 	for _, dep := range allDeps[pkg].Deps {
-		rFindCycles(pkg, &dep, allDeps, []string{}, cycles, logger)
+		rFindCycles(&dep, allDeps, trace, &cycles, pkg2comp, logger)
 	}
 
 	return cycles
 }
 
-func rFindCycles(target string, pkg *depth.Pkg, allDeps map[string]*depth.Pkg, path []string, cycles [][]string, logger dfence.Logger) {
+func rFindCycles(pkg *depth.Pkg, allDeps map[string]*depth.Pkg, trace []traceItem, cycles *[][]traceItem, pkg2comp map[string]string, logger dfence.Logger) {
 	if pkg == nil {
 		return
 	}
 
-	if pkg.Name == target {
-		logger.Debugf("Find cycle %v\n%s %s", path, pkg.Name)
-		path = append(path, pkg.Name)
-		cycles = append(cycles, path)
+	comp, ok := pkg2comp[pkg.Name]
+	if !ok {
 		return
 	}
 
-	path = append(path, pkg.Name)
+	lastSeen := trace[len(trace)-1]
+	trace = append(trace, traceItem{component: comp, pkg: pkg.Name})
 
-	_, ok := allDeps[pkg.Name]
+	if lastSeen.component != comp {
+		if comp == trace[0].component {
+			logger.Debugf("Found cycle %v", trace)
+			*cycles = append(*cycles, trace)
+			return
+		}
+	}
+
+	_, ok = allDeps[pkg.Name]
 	if !ok {
 		logger.Debugf("No deps info of %s", pkg.Name)
 		return
 	}
 
 	for _, dep := range allDeps[pkg.Name].Deps {
-		rFindCycles(target, &dep, allDeps, path, cycles, logger)
+		rFindCycles(&dep, allDeps, trace, cycles, pkg2comp, logger)
 	}
 }

@@ -124,18 +124,20 @@ func (c CanonicalConstraint) String() string {
 }
 
 // ComponentsForPackage yields all components matching the given package
+// The Boolean return value indicates if there is at least one component
 // Ideally, a package should match a single component but it will be not always the case
-func (p *Policy) ComponentsForPackage(pkg string) []string {
+func (p *Policy) ComponentsForPackage(pkg string) ([]string, bool) {
 	r := []string{}
 	for k, patterns := range p.canonicalComponents {
 		for _, pat := range patterns {
 			if pat.match(pkg) {
 				r = append(r, k)
+				break
 			}
 		}
 	}
 
-	return r
+	return r, len(r) > 0
 }
 
 // buildCanonicalConstraints populates canonical constraints of a dependency policy
