@@ -48,8 +48,7 @@ func (c Checker) CheckPkg(pkg string, out chan<- CheckResult) {
 	}
 
 	t := depth.Tree{
-		ResolveInternal: true,
-		ResolveTest:     true,
+		ResolveTest: true,
 	}
 
 	err := t.Resolve(pkg)
