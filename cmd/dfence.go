@@ -15,14 +15,15 @@ var logLevel string
 
 var rootCmd = &cobra.Command{
 	Use:   "dfence",
-	Short: "Dependency fence.",
-	Long:  "dfence will help you dompt your dependencies",
+	Short: "Dependency fences",
+	Long:  "dFence helps you tame your dependencies",
 
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		viper.Set("logger", buildlogger(logLevel))
 	},
 }
 
+// Execute executes this command
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

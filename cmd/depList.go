@@ -18,7 +18,7 @@ var maxDepth int
 var format string
 
 var cmdDepsList = &cobra.Command{
-	Use:   "list [package list]",
+	Use:   "list [package selector]",
 	Short: "list dependencies of the given packages",
 	Long:  "list dependencies of the given packages",
 	Run: func(cmd *cobra.Command, args []string) {

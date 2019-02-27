@@ -14,8 +14,8 @@ import (
 
 var cmdWhy = &cobra.Command{
 	Use:   "why [package] [package]",
-	Short: "explains why a package depends on other",
-	Long:  "explains why a package depends on other",
+	Short: "explains why a package depends on the other",
+	Long:  "explains why a package depends on the other",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(dfence.Logger)

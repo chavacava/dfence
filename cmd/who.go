@@ -14,7 +14,7 @@ import (
 var graph bool
 
 var cmdWho = &cobra.Command{
-	Use:   "who [package] [package list]",
+	Use:   "who [package] [package selector]",
 	Short: "explains what packages, from a package, list depend on a package",
 	Long:  "explains what packages, from a package, list depend on a package",
 	Args:  cobra.MinimumNArgs(2),
