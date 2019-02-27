@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var graphFile string
+
 var cmdFindCycles = &cobra.Command{
 	Use:   "find-cycles [package selector]",
 	Short: "spots dependency cycles among the given packages",
@@ -65,13 +67,54 @@ var cmdFindCycles = &cobra.Command{
 		for _, trace := range cycles {
 			logger.Errorf("Cycle: %v", trace)
 		}
+
+		if graphFile != "" {
+			err := generateCyclicGraph(graphFile, cycles)
+			if err != nil {
+				logger.Errorf("Unable to generate graph: %v", err)
+			}
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(cmdFindCycles)
-	cmdFindCycles.Flags().StringVar(&policyFile, "policy", "", "path to dependencies policy file ")
+	cmdFindCycles.Flags().StringVar(&policyFile, "policy", "", "path to dependencies policy file")
 	cmdFindCycles.MarkFlagRequired("policy")
+	cmdFindCycles.Flags().StringVar(&graphFile, "graph", "", "path of the graph of cyclic dependencies to be generated")
+}
+
+func generateCyclicGraph(file string, cycles [][]traceItem) error {
+	outFile, err := os.Create(file)
+	if err != nil {
+		return fmt.Errorf("unable to create file %s: %+v", file, err)
+	}
+
+	arcs := map[string]struct{}{}
+	for _, trace := range cycles {
+		origin := ""
+		for _, item := range trace {
+			if origin == "" {
+				origin = item.component
+				continue
+			}
+
+			if item.component == origin { // skip cycles
+				continue
+			}
+
+			arcs[origin+"->"+item.component] = struct{}{}
+			origin = item.component
+		}
+	}
+
+	fmt.Fprintf(outFile, "strict digraph deps {\n")
+	for k := range arcs {
+		fmt.Fprintf(outFile, "%s\n", k)
+	}
+	fmt.Fprintf(outFile, "}")
+
+	return nil
 }
 
 func getCompsForPkgs(pkgs []string, p dfence.Policy) (map[string]string, []error) {
