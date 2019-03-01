@@ -78,7 +78,7 @@ var cmdFindCycles = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(cmdFindCycles)
+	cmdDeps.AddCommand(cmdFindCycles)
 	cmdFindCycles.Flags().StringVar(&policyFile, "policy", "", "path to dependencies policy file")
 	cmdFindCycles.MarkFlagRequired("policy")
 	cmdFindCycles.Flags().StringVar(&graphFile, "graph", "", "path of the graph of cyclic dependencies to be generated")

@@ -55,7 +55,7 @@ var cmdCheck = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(cmdCheck)
+	cmdPolicy.AddCommand(cmdCheck)
 	cmdCheck.Flags().StringVar(&policyFile, "policy", "", "path to dependencies policy file ")
 	cmdCheck.MarkFlagRequired("policy")
 }

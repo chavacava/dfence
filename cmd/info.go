@@ -49,7 +49,7 @@ var cmdInfo = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(cmdInfo)
+	cmdPolicy.AddCommand(cmdInfo)
 	cmdInfo.Flags().StringVar(&policyFile, "policy", "", "path to dependencies policy file ")
 	cmdInfo.MarkFlagRequired("policy")
 }

@@ -114,7 +114,7 @@ func writeDepsTree(w io.Writer, p depth.Pkg, status []bool, isLast bool) {
 }
 
 func init() {
-	rootCmd.AddCommand(cmdDepsList)
+	cmdDeps.AddCommand(cmdDepsList)
 	cmdDepsList.Flags().IntVar(&maxDepth, "maxdepth", 0, "generate a graph")
 	cmdDepsList.Flags().StringVar(&format, "format", "plain", "output format: plain, tree")
 }

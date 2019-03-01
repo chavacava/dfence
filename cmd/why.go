@@ -35,7 +35,7 @@ var cmdWhy = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(cmdWhy)
+	cmdDeps.AddCommand(cmdWhy)
 }
 
 func writeExplain(logger dfence.Logger, pkg depth.Pkg, stack []string, explain string) {

@@ -51,6 +51,6 @@ var cmdWho = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(cmdWho)
+	cmdDeps.AddCommand(cmdWho)
 	cmdWho.Flags().BoolVar(&graph, "graph", false, "generate a graph")
 }
