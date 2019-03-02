@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"log"
-	"sync"
 
 	"github.com/spf13/viper"
 
@@ -10,8 +9,6 @@ import (
 	dfence "github.com/chavacava/dfence/internal"
 	"github.com/spf13/cobra"
 )
-
-var graph bool
 
 var cmdWho = &cobra.Command{
 	Use:   "who [package] [package selector]",
@@ -30,27 +27,24 @@ var cmdWho = &cobra.Command{
 		if err != nil {
 			logger.Fatalf("Unable to retrieve packages using the selector '%s': %v", pkgSelector, err)
 		}
-		var wg sync.WaitGroup
-		for _, p := range pkgs {
-			wg.Add(1)
-			go func(pkg string) {
-				var t depth.Tree
-				err := t.Resolve(pkg)
-				if err != nil {
-					logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
-				}
 
-				writeExplain(logger, *t.Root, []string{}, pkgTarget)
-				logger.Debugf("%s done.", pkg)
-				wg.Done()
-			}(p)
+		for _, pkg := range pkgs {
+			var t depth.Tree
+			err := t.Resolve(pkg)
+			if err != nil {
+				logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
+			}
+
+			explanations := []string{}
+			explainDep(*t.Root, pkgTarget, []string{}, &explanations)
+
+			for _, e := range explanations {
+				logger.Infof(e)
+			}
 		}
-
-		wg.Wait()
 	},
 }
 
 func init() {
 	cmdDeps.AddCommand(cmdWho)
-	cmdWho.Flags().BoolVar(&graph, "graph", false, "generate a graph")
 }
