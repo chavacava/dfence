@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	dfence "github.com/chavacava/dfence/internal"
@@ -54,21 +53,21 @@ func buildlogger(level string) dfence.Logger {
 		debug = buildLoggerFunc("[DEBUG] ", color.New(color.FgCyan))
 		fallthrough
 	case "info":
-		info = buildLoggerFunc("[INFO] ", color.New(color.FgGreen))
+		info = buildLoggerFunc("", color.New(color.FgGreen))
 		fallthrough
 	case "warn":
-		warn = buildLoggerFunc("[WARN] ", color.New(color.FgHiYellow))
+		warn = buildLoggerFunc("", color.New(color.FgHiYellow))
 		fallthrough
 	default:
-		err = buildLoggerFunc("[ERROR] ", color.New(color.BgHiRed))
+		err = buildLoggerFunc("", color.New(color.BgHiRed))
 	}
 
-	fatal := buildLoggerFunc("[FATAL] ", color.New(color.BgRed))
+	fatal := buildLoggerFunc("", color.New(color.BgRed))
 	return dfence.NewLogger(debug, info, warn, err, fatal)
 }
 
 func buildLoggerFunc(prefix string, c *color.Color) dfence.LoggerFunc {
 	return func(msg string, vars ...interface{}) {
-		log.Println(c.Sprintf(prefix+msg, vars...))
+		fmt.Println(c.Sprintf(prefix+msg, vars...))
 	}
 }
