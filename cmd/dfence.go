@@ -16,7 +16,15 @@ var logLevel string
 var rootCmd = &cobra.Command{
 	Use:   "dfence",
 	Short: "Dependency fences",
-	Long:  "dFence helps you tame your dependencies",
+	Long: `
+         ________                   
+    ____/ / ____/__  ____  ________ 
+   / __  / /_  / _ \/ __ \/ ___/ _ \
+  / /_/ / __/ /  __/ / / / /__/  __/
+  \__,_/_/    \___/_/ /_/\___/\___/ 
+																		 
+	
+  dFence helps you tame your dependencies`,
 
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		viper.Set("logger", buildlogger(logLevel))
