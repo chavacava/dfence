@@ -1,3 +1,5 @@
+![logo](./doc/dfence-logo.png)
+
 # dfence
 
 **dfence** (from _dependencies fence_) helps maintaining dependencies under 
