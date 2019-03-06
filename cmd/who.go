@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log"
+	"sync"
 
 	"github.com/spf13/viper"
 
@@ -28,20 +29,32 @@ var cmdWho = &cobra.Command{
 			logger.Fatalf("Unable to retrieve packages using the selector '%s': %v", pkgSelector, err)
 		}
 
+		const concLevel = 10 // concurrency level
+		tokens := make(chan struct{}, concLevel)
+		var wg sync.WaitGroup
+		wg.Add(len(pkgs))
+
 		for _, pkg := range pkgs {
-			var t depth.Tree
-			err := t.Resolve(pkg)
-			if err != nil {
-				logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
-			}
+			go func(pkg string) {
+				tokens <- struct{}{}
+				var t depth.Tree
+				err := t.Resolve(pkg)
+				if err != nil {
+					logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
+				}
 
-			explanations := []string{}
-			explainDep(*t.Root, pkgTarget, []string{}, &explanations)
+				explanations := []string{}
+				explainDep(*t.Root, pkgTarget, []string{}, &explanations)
 
-			for _, e := range explanations {
-				logger.Infof(e)
-			}
+				for _, e := range explanations {
+					logger.Infof(e)
+				}
+				<-tokens
+				wg.Done()
+			}(pkg)
 		}
+
+		wg.Wait()
 	},
 }
 
