@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"io"
 	"os"
 )
 
@@ -23,13 +22,11 @@ type Logger interface {
 
 // Log is a Logger implementation
 type Log struct {
-	debug  LoggerFunc
-	info   LoggerFunc
-	warn   LoggerFunc
-	error  LoggerFunc
-	fatal  LoggerFunc
-	errOut io.Writer
-	stdOut io.Writer
+	debug LoggerFunc
+	info  LoggerFunc
+	warn  LoggerFunc
+	error LoggerFunc
+	fatal LoggerFunc
 }
 
 // NewLogger yields a new Logger implementation
