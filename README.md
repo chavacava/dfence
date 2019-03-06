@@ -1,4 +1,6 @@
-# dFence
+![logo](./doc/dfence-logo.png)
+
+# dfence
 
 **dFence** (for _dependencies fence_) helps maintaining dependencies under 
 control by enforcing dependencies policies on your packages.

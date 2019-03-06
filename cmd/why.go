@@ -3,7 +3,6 @@ package cmd
 import (
 	"log"
 	"strings"
-	"sync"
 
 	"github.com/spf13/viper"
 
@@ -30,7 +29,13 @@ var cmdWhy = &cobra.Command{
 		if err != nil {
 			logger.Errorf("Unable to analyze package '%s': %v", pkgSource, err.Error())
 		}
-		writeExplain(logger, *t.Root, []string{}, pkgTarget)
+
+		explanations := []string{}
+		explainDep(*t.Root, pkgTarget, []string{}, &explanations)
+
+		for _, e := range explanations {
+			logger.Infof(e)
+		}
 	},
 }
 
@@ -38,21 +43,15 @@ func init() {
 	cmdDeps.AddCommand(cmdWhy)
 }
 
-func writeExplain(logger dfence.Logger, pkg depth.Pkg, stack []string, explain string) {
+func explainDep(pkg depth.Pkg, explain string, stack []string, explanations *[]string) {
 	stack = append(stack, pkg.Name)
 
 	if pkg.Name == explain {
-		logger.Infof(strings.Join(stack, " -> "))
+		*explanations = append(*explanations, strings.Join(stack, " -> "))
+		return
 	}
 
-	var wg sync.WaitGroup
-	for _, p := range pkg.Deps {
-		wg.Add(1)
-		go func(pkg depth.Pkg) {
-			writeExplain(logger, pkg, stack, explain)
-			wg.Done()
-		}(p)
+	for _, pkg := range pkg.Deps {
+		explainDep(pkg, explain, stack, explanations)
 	}
-
-	wg.Wait()
 }
