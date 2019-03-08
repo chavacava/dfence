@@ -54,7 +54,7 @@ var cmdFindCycles = &cobra.Command{
 
 		allDeps := getAllDeps(pkgs, logger)
 
-		cycles := [][]traceItem{}
+		cycles := []*dfence.DepChain{}
 		for _, pkg := range pkgs {
 			cycles = append(cycles, findCycles(pkg, allDeps, pkg2comps, logger)...)
 		}
@@ -64,8 +64,8 @@ var cmdFindCycles = &cobra.Command{
 			return
 		}
 
-		for _, trace := range cycles {
-			logger.Errorf("Cycle: %v", trace)
+		for _, depChain := range cycles {
+			logger.Errorf("Cycle: %v", depChain)
 		}
 
 		if graphFile != "" {
@@ -84,33 +84,15 @@ func init() {
 	cmdFindCycles.Flags().StringVar(&graphFile, "graph", "", "path of the graph of cyclic dependencies to be generated")
 }
 
-func generateCyclicGraph(file string, cycles [][]traceItem) error {
+func generateCyclicGraph(file string, cycles []*dfence.DepChain) error {
 	outFile, err := os.Create(file)
 	if err != nil {
 		return fmt.Errorf("unable to create file %s: %+v", file, err)
 	}
 
-	arcs := map[string]struct{}{}
-	for _, trace := range cycles {
-		origin := ""
-		for _, item := range trace {
-			if origin == "" {
-				origin = item.component
-				continue
-			}
-
-			if item.component == origin { // skip cycles
-				continue
-			}
-
-			arcs[origin+"->"+item.component] = struct{}{}
-			origin = item.component
-		}
-	}
-
 	fmt.Fprintf(outFile, "strict digraph deps {\n")
-	for k := range arcs {
-		fmt.Fprintf(outFile, "%s\n", k)
+	for _, cycle := range cycles {
+		fmt.Fprint(outFile, cycle.AsDotEdges())
 	}
 	fmt.Fprintf(outFile, "}")
 
@@ -161,17 +143,8 @@ func getAllDeps(pkgs []string, logger dfence.Logger) map[string]*depth.Pkg {
 	return r
 }
 
-type traceItem struct {
-	component string
-	pkg       string
-}
-
-func (i traceItem) String() string {
-	return fmt.Sprintf("%s (%s)", i.pkg, i.component)
-}
-
-func findCycles(pkg string, allDeps map[string]*depth.Pkg, pkg2comp map[string]string, logger dfence.Logger) [][]traceItem {
-	cycles := [][]traceItem{}
+func findCycles(pkg string, allDeps map[string]*depth.Pkg, pkg2comp map[string]string, logger dfence.Logger) []*dfence.DepChain {
+	cycles := []*dfence.DepChain{}
 
 	comp, ok := pkg2comp[pkg]
 	if !ok {
@@ -181,33 +154,31 @@ func findCycles(pkg string, allDeps map[string]*depth.Pkg, pkg2comp map[string]s
 
 	logger.Debugf("Searching cycles for: %s of component %s", pkg, comp)
 
-	trace := []traceItem{{component: comp, pkg: pkg}}
+	depChain := dfence.NewDepChain()
+	depChain.Append(pkg, comp)
 	for _, dep := range allDeps[pkg].Deps {
-		rFindCycles(&dep, allDeps, trace, &cycles, pkg2comp, logger)
+		rFindCycles(&dep, allDeps, depChain, &cycles, pkg2comp, logger)
 	}
 
 	return cycles
 }
 
-func rFindCycles(pkg *depth.Pkg, allDeps map[string]*depth.Pkg, trace []traceItem, cycles *[][]traceItem, pkg2comp map[string]string, logger dfence.Logger) {
+func rFindCycles(pkg *depth.Pkg, allDeps map[string]*depth.Pkg, depChain dfence.DepChain, cycles *[]*dfence.DepChain, pkg2comp map[string]string, logger dfence.Logger) {
 	if pkg == nil {
-		return
+		return // skip if pkg is nil. It happens in some cases TODO(chavacava)
 	}
 
 	comp, ok := pkg2comp[pkg.Name]
 	if !ok {
-		return
+		return // skip the package because it does not belong to any known component
 	}
 
-	lastSeen := trace[len(trace)-1]
-	trace = append(trace, traceItem{component: comp, pkg: pkg.Name})
+	depChain.Append(pkg.Name, comp)
 
-	if lastSeen.component != comp {
-		if comp == trace[0].component {
-			logger.Debugf("Found cycle %v", trace)
-			*cycles = append(*cycles, trace)
-			return
-		}
+	if depChain.IsCyclic() {
+		logger.Debugf("Found cycle %v", depChain)
+		*cycles = append(*cycles, &depChain)
+		return
 	}
 
 	_, ok = allDeps[pkg.Name]
@@ -217,6 +188,6 @@ func rFindCycles(pkg *depth.Pkg, allDeps map[string]*depth.Pkg, trace []traceIte
 	}
 
 	for _, dep := range allDeps[pkg.Name].Deps {
-		rFindCycles(&dep, allDeps, trace, cycles, pkg2comp, logger)
+		rFindCycles(&dep, allDeps, depChain, cycles, pkg2comp, logger)
 	}
 }
