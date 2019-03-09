@@ -54,7 +54,7 @@ var cmdFindCycles = &cobra.Command{
 
 		allDeps := getAllDeps(pkgs, logger)
 
-		cycles := []*dfence.DepChain{}
+		cycles := []dfence.DepChain{}
 		for _, pkg := range pkgs {
 			cycles = append(cycles, findCycles(pkg, allDeps, pkg2comps, logger)...)
 		}
@@ -84,7 +84,7 @@ func init() {
 	cmdFindCycles.Flags().StringVar(&graphFile, "graph", "", "path of the graph of cyclic dependencies to be generated")
 }
 
-func generateCyclicGraph(file string, cycles []*dfence.DepChain) error {
+func generateCyclicGraph(file string, cycles []dfence.DepChain) error {
 	outFile, err := os.Create(file)
 	if err != nil {
 		return fmt.Errorf("unable to create file %s: %+v", file, err)
@@ -143,8 +143,8 @@ func getAllDeps(pkgs []string, logger dfence.Logger) map[string]*depth.Pkg {
 	return r
 }
 
-func findCycles(pkg string, allDeps map[string]*depth.Pkg, pkg2comp map[string]string, logger dfence.Logger) []*dfence.DepChain {
-	cycles := []*dfence.DepChain{}
+func findCycles(pkg string, allDeps map[string]*depth.Pkg, pkg2comp map[string]string, logger dfence.Logger) []dfence.DepChain {
+	cycles := []dfence.DepChain{}
 
 	comp, ok := pkg2comp[pkg]
 	if !ok {
@@ -163,7 +163,7 @@ func findCycles(pkg string, allDeps map[string]*depth.Pkg, pkg2comp map[string]s
 	return cycles
 }
 
-func rFindCycles(pkg *depth.Pkg, allDeps map[string]*depth.Pkg, depChain dfence.DepChain, cycles *[]*dfence.DepChain, pkg2comp map[string]string, logger dfence.Logger) {
+func rFindCycles(pkg *depth.Pkg, allDeps map[string]*depth.Pkg, depChain dfence.DepChain, cycles *[]dfence.DepChain, pkg2comp map[string]string, logger dfence.Logger) {
 	if pkg == nil {
 		return // skip if pkg is nil. It happens in some cases TODO(chavacava)
 	}
@@ -176,8 +176,7 @@ func rFindCycles(pkg *depth.Pkg, allDeps map[string]*depth.Pkg, depChain dfence.
 	depChain.Append(dfence.NewCompoundChainItem(comp, pkg.Name))
 
 	if depChain.IsCyclic() {
-		logger.Debugf("Found cycle %v", depChain)
-		*cycles = append(*cycles, &depChain)
+		*cycles = append(*cycles, depChain.Clone())
 		return
 	}
 

@@ -67,6 +67,16 @@ func (c *DepChain) Items() []DepChainItem {
 	return c.items
 }
 
+// Clone yields a shallow copy of this chain
+func (c *DepChain) Clone() (result DepChain) {
+	result = NewDepChain()
+	for _, item := range c.items {
+		result.Append(item) // Append also updates all chain fields (lastName, isCyclic...)
+	}
+
+	return
+}
+
 // String representation of this dependencies chain
 func (c *DepChain) String() string {
 	result := ""

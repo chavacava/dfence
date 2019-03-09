@@ -53,7 +53,7 @@ func recExplainDep(pkg depth.Pkg, explain string, chain dfence.DepChain, explana
 	chain.Append(dfence.NewRawChainItem(pkg.Name))
 
 	if pkg.Name == explain {
-		*explanations = append(*explanations, chain)
+		*explanations = append(*explanations, chain.Clone())
 		return
 	}
 
