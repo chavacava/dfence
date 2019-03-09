@@ -10,8 +10,8 @@ import (
 
 var cmdDeps = &cobra.Command{
 	Use:   "deps [command]",
-	Short: "executes dependencies related commands",
-	Long:  "executes dependencies related commands",
+	Short: "Executes dependencies-related commands",
+	Long:  "Executes dependencies-related commands",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(dfence.Logger)
 		if !ok {

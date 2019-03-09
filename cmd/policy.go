@@ -10,8 +10,8 @@ import (
 
 var cmdPolicy = &cobra.Command{
 	Use:   "policy [command]",
-	Short: "executes policy-related commands",
-	Long:  "executes policy-related commands",
+	Short: "Executes policy-related commands",
+	Long:  "Executes policy-related commands",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(dfence.Logger)
 		if !ok {
