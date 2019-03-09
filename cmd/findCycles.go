@@ -18,8 +18,8 @@ var graphFile string
 
 var cmdFindCycles = &cobra.Command{
 	Use:   "find-cycles [package selector]",
-	Short: "spots dependency cycles among the given packages",
-	Long:  "spot dependency cycles among the given packages",
+	Short: "Spots dependency cycles among the given packages",
+	Long:  "Spot dependency cycles among the given packages",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {

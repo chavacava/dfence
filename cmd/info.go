@@ -13,8 +13,8 @@ import (
 
 var cmdInfo = &cobra.Command{
 	Use:   "info [package selector]",
-	Short: "provides information about policy on the given packages",
-	Long:  `provides information about policy on the given packages.`,
+	Short: "Provides information about policy on the given packages",
+	Long:  "Provides information about policy on the given packages",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {

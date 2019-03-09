@@ -18,8 +18,8 @@ var format string
 
 var cmdDepsList = &cobra.Command{
 	Use:   "list [package selector]",
-	Short: "list dependencies of the given packages",
-	Long:  "list dependencies of the given packages",
+	Short: "List dependencies of the given packages",
+	Long:  "List dependencies of the given packages",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {

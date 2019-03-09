@@ -19,8 +19,8 @@ var policyFile string
 
 var cmdCheck = &cobra.Command{
 	Use:   "check [package selector]",
-	Short: "check policy on given packages",
-	Long:  "check if the packages respect the dependencies policy.",
+	Short: "Check policy on given packages",
+	Long:  "Check if the packages respect the dependencies policy.",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {
