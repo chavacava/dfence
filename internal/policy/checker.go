@@ -1,4 +1,4 @@
-package internal
+package policy
 
 import (
 	"errors"
@@ -7,14 +7,19 @@ import (
 	"github.com/KyleBanks/depth"
 )
 
+type logger interface {
+	Warningf(string, ...interface{})
+	Debugf(string, ...interface{})
+}
+
 // Checker models a dependencies constraints checker
 type Checker struct {
 	policy Policy
-	logger Logger
+	logger logger
 }
 
 // NewChecker yields a dependencies constraint checker
-func NewChecker(p Policy, l Logger) (Checker, error) {
+func NewChecker(p Policy, l logger) (Checker, error) {
 	return Checker{policy: p, logger: l}, nil
 }
 

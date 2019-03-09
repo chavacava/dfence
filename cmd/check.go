@@ -9,10 +9,10 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/spf13/viper"
-
-	dfence "github.com/chavacava/dfence/internal"
+	"github.com/chavacava/dfence/internal/infra"
+	"github.com/chavacava/dfence/internal/policy"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var policyFile string
@@ -22,7 +22,7 @@ var cmdCheck = &cobra.Command{
 	Short: "check policy on given packages",
 	Long:  "check if the packages respect the dependencies policy.",
 	Run: func(cmd *cobra.Command, args []string) {
-		logger, ok := viper.Get("logger").(dfence.Logger)
+		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {
 			log.Fatal("Unable to retrieve the logger.") // revive:disable-line:deep-exit
 		}
@@ -33,7 +33,7 @@ var cmdCheck = &cobra.Command{
 			logger.Fatalf("Unable to open policy file %s: %+v", policyFile, err)
 		}
 
-		policy, err := dfence.NewPolicyFromJSON(stream)
+		policy, err := policy.NewPolicyFromJSON(stream)
 		if err != nil {
 			logger.Fatalf("Unable to load policy : %v", err) // revive:disable-line:deep-exit
 		}
@@ -60,15 +60,15 @@ func init() {
 	cmdCheck.MarkFlagRequired("policy")
 }
 
-func check(p dfence.Policy, pkgs []string, logger dfence.Logger) error {
-	checker, err := dfence.NewChecker(p, logger)
+func check(p policy.Policy, pkgs []string, logger infra.Logger) error {
+	checker, err := policy.NewChecker(p, logger)
 	if err != nil {
 		logger.Fatalf("Unable to run the checker: %v", err)
 	}
 
 	pkgCount := len(pkgs)
 	errCount := 0
-	out := make(chan dfence.CheckResult, pkgCount)
+	out := make(chan policy.CheckResult, pkgCount)
 	for _, pkg := range pkgs {
 		go checker.CheckPkg(pkg, out)
 	}

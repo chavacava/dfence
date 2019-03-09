@@ -6,11 +6,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spf13/viper"
-
 	"github.com/KyleBanks/depth"
-	dfence "github.com/chavacava/dfence/internal"
+	"github.com/chavacava/dfence/internal/deps"
+	"github.com/chavacava/dfence/internal/infra"
+	"github.com/chavacava/dfence/internal/policy"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var graphFile string
@@ -20,7 +21,7 @@ var cmdFindCycles = &cobra.Command{
 	Short: "spots dependency cycles among the given packages",
 	Long:  "spot dependency cycles among the given packages",
 	Run: func(cmd *cobra.Command, args []string) {
-		logger, ok := viper.Get("logger").(dfence.Logger)
+		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {
 			log.Fatal("Unable to retrieve the logger.") // revive:disable-line:deep-exit
 		}
@@ -31,7 +32,7 @@ var cmdFindCycles = &cobra.Command{
 			logger.Fatalf("Unable to open policy file %s: %+v", policyFile, err)
 		}
 
-		policy, err := dfence.NewPolicyFromJSON(stream)
+		policy, err := policy.NewPolicyFromJSON(stream)
 		if err != nil {
 			logger.Fatalf("Unable to load policy : %v", err) // revive:disable-line:deep-exit
 		}
@@ -54,7 +55,7 @@ var cmdFindCycles = &cobra.Command{
 
 		allDeps := getAllDeps(pkgs, logger)
 
-		cycles := []dfence.DepChain{}
+		cycles := []deps.DepChain{}
 		for _, pkg := range pkgs {
 			cycles = append(cycles, findCycles(pkg, allDeps, pkg2comps, logger)...)
 		}
@@ -84,7 +85,7 @@ func init() {
 	cmdFindCycles.Flags().StringVar(&graphFile, "graph", "", "path of the graph of cyclic dependencies to be generated")
 }
 
-func generateCyclicGraph(file string, cycles []dfence.DepChain) error {
+func generateCyclicGraph(file string, cycles []deps.DepChain) error {
 	outFile, err := os.Create(file)
 	if err != nil {
 		return fmt.Errorf("unable to create file %s: %+v", file, err)
@@ -99,7 +100,7 @@ func generateCyclicGraph(file string, cycles []dfence.DepChain) error {
 	return nil
 }
 
-func getCompsForPkgs(pkgs []string, p dfence.Policy) (map[string]string, []error) {
+func getCompsForPkgs(pkgs []string, p policy.Policy) (map[string]string, []error) {
 	r := make(map[string]string, len(pkgs))
 	errs := []error{}
 
@@ -120,7 +121,7 @@ func getCompsForPkgs(pkgs []string, p dfence.Policy) (map[string]string, []error
 	return r, errs
 }
 
-func getAllDeps(pkgs []string, logger dfence.Logger) map[string]*depth.Pkg {
+func getAllDeps(pkgs []string, logger infra.Logger) map[string]*depth.Pkg {
 	logger.Debugf("Retrieving dependencies...")
 
 	r := map[string]*depth.Pkg{}
@@ -143,8 +144,8 @@ func getAllDeps(pkgs []string, logger dfence.Logger) map[string]*depth.Pkg {
 	return r
 }
 
-func findCycles(pkg string, allDeps map[string]*depth.Pkg, pkg2comp map[string]string, logger dfence.Logger) []dfence.DepChain {
-	cycles := []dfence.DepChain{}
+func findCycles(pkg string, allDeps map[string]*depth.Pkg, pkg2comp map[string]string, logger infra.Logger) []deps.DepChain {
+	cycles := []deps.DepChain{}
 
 	comp, ok := pkg2comp[pkg]
 	if !ok {
@@ -154,8 +155,8 @@ func findCycles(pkg string, allDeps map[string]*depth.Pkg, pkg2comp map[string]s
 
 	logger.Debugf("Searching cycles for: %s of component %s", pkg, comp)
 
-	depChain := dfence.NewDepChain()
-	depChain.Append(dfence.NewCompoundChainItem(comp, pkg))
+	depChain := deps.NewDepChain()
+	depChain.Append(deps.NewCompoundChainItem(comp, pkg))
 	for _, dep := range allDeps[pkg].Deps {
 		rFindCycles(&dep, allDeps, depChain, &cycles, pkg2comp, logger)
 	}
@@ -163,7 +164,7 @@ func findCycles(pkg string, allDeps map[string]*depth.Pkg, pkg2comp map[string]s
 	return cycles
 }
 
-func rFindCycles(pkg *depth.Pkg, allDeps map[string]*depth.Pkg, depChain dfence.DepChain, cycles *[]dfence.DepChain, pkg2comp map[string]string, logger dfence.Logger) {
+func rFindCycles(pkg *depth.Pkg, allDeps map[string]*depth.Pkg, depChain deps.DepChain, cycles *[]deps.DepChain, pkg2comp map[string]string, logger infra.Logger) {
 	if pkg == nil {
 		return // skip if pkg is nil. It happens in some cases TODO(chavacava)
 	}
@@ -173,7 +174,7 @@ func rFindCycles(pkg *depth.Pkg, allDeps map[string]*depth.Pkg, depChain dfence.
 		return // skip the package because it does not belong to any known component
 	}
 
-	depChain.Append(dfence.NewCompoundChainItem(comp, pkg.Name))
+	depChain.Append(deps.NewCompoundChainItem(comp, pkg.Name))
 
 	if depChain.IsCyclic() {
 		*cycles = append(*cycles, depChain.Clone())

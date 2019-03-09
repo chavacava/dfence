@@ -1,4 +1,4 @@
-package internal
+package policy
 
 import (
 	"bytes"

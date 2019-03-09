@@ -7,11 +7,10 @@ import (
 	"log"
 	"strings"
 
-	"github.com/spf13/viper"
-
 	"github.com/KyleBanks/depth"
-	dfence "github.com/chavacava/dfence/internal"
+	"github.com/chavacava/dfence/internal/infra"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var maxDepth int
@@ -22,7 +21,7 @@ var cmdDepsList = &cobra.Command{
 	Short: "list dependencies of the given packages",
 	Long:  "list dependencies of the given packages",
 	Run: func(cmd *cobra.Command, args []string) {
-		logger, ok := viper.Get("logger").(dfence.Logger)
+		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {
 			log.Fatal("Unable to retrieve the logger.") // revive:disable-line:deep-exit
 		}

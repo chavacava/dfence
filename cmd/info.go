@@ -5,10 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spf13/viper"
-
-	dfence "github.com/chavacava/dfence/internal"
+	"github.com/chavacava/dfence/internal/infra"
+	"github.com/chavacava/dfence/internal/policy"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var cmdInfo = &cobra.Command{
@@ -16,7 +16,7 @@ var cmdInfo = &cobra.Command{
 	Short: "provides information about policy on the given packages",
 	Long:  `provides information about policy on the given packages.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logger, ok := viper.Get("logger").(dfence.Logger)
+		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {
 			log.Fatal("Unable to retrieve the logger.") // revive:disable-line:deep-exit
 		}
@@ -27,7 +27,7 @@ var cmdInfo = &cobra.Command{
 			logger.Fatalf("Unable to open policy file %s: %+v", policyFile, err)
 		}
 
-		policy, err := dfence.NewPolicyFromJSON(stream)
+		policy, err := policy.NewPolicyFromJSON(stream)
 		if err != nil {
 			logger.Fatalf("Unable to load policy : %v", err) // revive:disable-line:deep-exit
 		}
@@ -54,7 +54,7 @@ func init() {
 	cmdInfo.MarkFlagRequired("policy")
 }
 
-func info(p dfence.Policy, pkgs []string, logger dfence.Logger) error {
+func info(p policy.Policy, pkgs []string, logger infra.Logger) error {
 	for _, pkg := range pkgs {
 		cs := p.GetApplicableConstraints(pkg)
 		if len(cs) == 0 {

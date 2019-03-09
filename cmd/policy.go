@@ -3,7 +3,7 @@ package cmd
 import (
 	"log"
 
-	dfence "github.com/chavacava/dfence/internal"
+	"github.com/chavacava/dfence/internal/infra"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -13,7 +13,7 @@ var cmdPolicy = &cobra.Command{
 	Short: "Executes policy-related commands",
 	Long:  "Executes policy-related commands",
 	Run: func(cmd *cobra.Command, args []string) {
-		logger, ok := viper.Get("logger").(dfence.Logger)
+		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {
 			log.Fatal("Unable to retrieve the logger. Please use a subcommand") // revive:disable-line:deep-exit
 		}

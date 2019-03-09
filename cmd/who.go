@@ -4,11 +4,10 @@ import (
 	"log"
 	"sync"
 
-	"github.com/spf13/viper"
-
 	"github.com/KyleBanks/depth"
-	dfence "github.com/chavacava/dfence/internal"
+	"github.com/chavacava/dfence/internal/infra"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var cmdWho = &cobra.Command{
@@ -17,7 +16,7 @@ var cmdWho = &cobra.Command{
 	Long:  "explains what packages, from a package list, depend on a package",
 	Args:  cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		logger, ok := viper.Get("logger").(dfence.Logger)
+		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {
 			log.Fatal("Unable to retrieve the logger.") // revive:disable-line:deep-exit
 		}

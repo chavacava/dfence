@@ -3,11 +3,11 @@ package cmd
 import (
 	"log"
 
-	"github.com/spf13/viper"
-
 	"github.com/KyleBanks/depth"
-	dfence "github.com/chavacava/dfence/internal"
+	"github.com/chavacava/dfence/internal/deps"
+	"github.com/chavacava/dfence/internal/infra"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var cmdWhy = &cobra.Command{
@@ -16,7 +16,7 @@ var cmdWhy = &cobra.Command{
 	Long:  "explains why a package depends on the other",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		logger, ok := viper.Get("logger").(dfence.Logger)
+		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {
 			log.Fatal("Unable to retrieve the logger.") // revive:disable-line:deep-exit
 		}
@@ -42,15 +42,15 @@ func init() {
 }
 
 // explainDep yields a list of dependency chains going from -> ... -> to
-func explainDep(from depth.Pkg, to string) []dfence.DepChain {
-	explanations := []dfence.DepChain{}
+func explainDep(from depth.Pkg, to string) []deps.DepChain {
+	explanations := []deps.DepChain{}
 
-	recExplainDep(from, to, dfence.NewDepChain(), &explanations)
+	recExplainDep(from, to, deps.NewDepChain(), &explanations)
 	return explanations
 }
 
-func recExplainDep(pkg depth.Pkg, explain string, chain dfence.DepChain, explanations *[]dfence.DepChain) {
-	chain.Append(dfence.NewRawChainItem(pkg.Name))
+func recExplainDep(pkg depth.Pkg, explain string, chain deps.DepChain, explanations *[]deps.DepChain) {
+	chain.Append(deps.NewRawChainItem(pkg.Name))
 
 	if pkg.Name == explain {
 		*explanations = append(*explanations, chain.Clone())

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	dfence "github.com/chavacava/dfence/internal"
+	"github.com/chavacava/dfence/internal/infra"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -43,7 +43,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log", "info", "log level: none, error, warn, info, debug")
 }
 
-func buildlogger(level string) dfence.Logger {
+func buildlogger(level string) infra.Logger {
 	nop := func(string, ...interface{}) {}
 	debug, info, warn, err := nop, nop, nop, nop
 	switch level {
@@ -63,10 +63,10 @@ func buildlogger(level string) dfence.Logger {
 	}
 
 	fatal := buildLoggerFunc("", color.New(color.BgRed))
-	return dfence.NewLogger(debug, info, warn, err, fatal)
+	return infra.NewLogger(debug, info, warn, err, fatal)
 }
 
-func buildLoggerFunc(prefix string, c *color.Color) dfence.LoggerFunc {
+func buildLoggerFunc(prefix string, c *color.Color) infra.LoggerFunc {
 	return func(msg string, vars ...interface{}) {
 		fmt.Println(c.Sprintf(prefix+msg, vars...))
 	}
