@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/KyleBanks/depth"
+	"github.com/chavacava/dfence/internal/deps"
 	"github.com/chavacava/dfence/internal/infra"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -12,8 +13,8 @@ import (
 
 var cmdWho = &cobra.Command{
 	Use:   "who [package] [package selector]",
-	Short: "explains what packages, from a package list, depend on a package",
-	Long:  "explains what packages, from a package list, depend on a package",
+	Short: "Explains what packages, from a package list, depend on a package",
+	Long:  "Explains what packages, from a package list, depend on a package",
 	Args:  cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(infra.Logger)
@@ -46,7 +47,7 @@ var cmdWho = &cobra.Command{
 					logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
 				}
 
-				explanations := explainDep(*t.Root, pkgTarget)
+				explanations := deps.ExplainDep(*t.Root, pkgTarget)
 
 				for _, e := range explanations {
 					logger.Infof(e.String())
