@@ -1,9 +1,11 @@
+// Package infra contains infrastructure-related code
 package infra
 
 import (
 	"os"
 )
 
+// LoggerFunc is the type of functions of the logger
 type LoggerFunc func(string, ...interface{})
 
 // Logger is the logging interface
@@ -57,5 +59,5 @@ func (l Log) Errorf(msg string, exprs ...interface{}) {
 // Fatalf logs an error message and exits
 func (l Log) Fatalf(msg string, exprs ...interface{}) {
 	l.fatal(msg, exprs...)
-	os.Exit(1)
+	os.Exit(1) // revive:disable-line
 }

@@ -1,3 +1,4 @@
+// Package policy provides definitions and functionality related to dependency policies
 package policy
 
 import (
