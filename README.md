@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.com/chavacava/dfence.svg?branch=master)](https://travis-ci.com/chavacava/dfence)
+[![Go Report Card](https://goreportcard.com/badge/github.com/chavacava/dfence)](https://goreportcard.com/report/github.com/chavacava/dfence)
+
+
 ![logo](./doc/dfence-logo.png)
 
 # dfence
