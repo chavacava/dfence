@@ -61,6 +61,7 @@ var cmdWho = &cobra.Command{
 }
 
 func init() {
+	const unlimitedDepth = 0
 	cmdDeps.AddCommand(cmdWho)
-	cmdWho.Flags().IntVar(&maxDepth, "maxdepth", 0, "max dependence distance")
+	cmdWho.Flags().IntVar(&maxDepth, "maxdepth", unlimitedDepth, "max dependence distance")
 }
