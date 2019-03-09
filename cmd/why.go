@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"log"
-	"strings"
 
 	"github.com/spf13/viper"
 
@@ -30,11 +29,10 @@ var cmdWhy = &cobra.Command{
 			logger.Errorf("Unable to analyze package '%s': %v", pkgSource, err.Error())
 		}
 
-		explanations := []string{}
-		explainDep(*t.Root, pkgTarget, []string{}, &explanations)
+		explanations := explainDep(*t.Root, pkgTarget)
 
 		for _, e := range explanations {
-			logger.Infof(e)
+			logger.Infof(e.String())
 		}
 	},
 }
@@ -43,15 +41,23 @@ func init() {
 	cmdDeps.AddCommand(cmdWhy)
 }
 
-func explainDep(pkg depth.Pkg, explain string, stack []string, explanations *[]string) {
-	stack = append(stack, pkg.Name)
+// explainDep yields a list of dependency chains going from -> ... -> to
+func explainDep(from depth.Pkg, to string) []dfence.DepChain {
+	explanations := []dfence.DepChain{}
+
+	recExplainDep(from, to, dfence.NewDepChain(), &explanations)
+	return explanations
+}
+
+func recExplainDep(pkg depth.Pkg, explain string, chain dfence.DepChain, explanations *[]dfence.DepChain) {
+	chain.Append(dfence.NewRawChainItem(pkg.Name))
 
 	if pkg.Name == explain {
-		*explanations = append(*explanations, strings.Join(stack, " -> "))
+		*explanations = append(*explanations, chain)
 		return
 	}
 
 	for _, pkg := range pkg.Deps {
-		explainDep(pkg, explain, stack, explanations)
+		recExplainDep(pkg, explain, chain, explanations)
 	}
 }

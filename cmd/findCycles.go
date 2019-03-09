@@ -155,7 +155,7 @@ func findCycles(pkg string, allDeps map[string]*depth.Pkg, pkg2comp map[string]s
 	logger.Debugf("Searching cycles for: %s of component %s", pkg, comp)
 
 	depChain := dfence.NewDepChain()
-	depChain.Append(pkg, comp)
+	depChain.Append(dfence.NewCompoundChainItem(comp, pkg))
 	for _, dep := range allDeps[pkg].Deps {
 		rFindCycles(&dep, allDeps, depChain, &cycles, pkg2comp, logger)
 	}
@@ -173,7 +173,7 @@ func rFindCycles(pkg *depth.Pkg, allDeps map[string]*depth.Pkg, depChain dfence.
 		return // skip the package because it does not belong to any known component
 	}
 
-	depChain.Append(pkg.Name, comp)
+	depChain.Append(dfence.NewCompoundChainItem(comp, pkg.Name))
 
 	if depChain.IsCyclic() {
 		logger.Debugf("Found cycle %v", depChain)

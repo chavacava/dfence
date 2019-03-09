@@ -38,16 +38,19 @@ var cmdWho = &cobra.Command{
 			go func(pkg string) {
 				tokens <- struct{}{}
 				var t depth.Tree
+				if maxDepth > 0 {
+					t.MaxDepth = maxDepth
+				}
+
 				err := t.Resolve(pkg)
 				if err != nil {
 					logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
 				}
 
-				explanations := []string{}
-				explainDep(*t.Root, pkgTarget, []string{}, &explanations)
+				explanations := explainDep(*t.Root, pkgTarget)
 
 				for _, e := range explanations {
-					logger.Infof(e)
+					logger.Infof(e.String())
 				}
 				<-tokens
 				wg.Done()
@@ -60,4 +63,5 @@ var cmdWho = &cobra.Command{
 
 func init() {
 	cmdDeps.AddCommand(cmdWho)
+	cmdWho.Flags().IntVar(&maxDepth, "maxdepth", 0, "max dependence distance")
 }
