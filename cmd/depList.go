@@ -115,6 +115,6 @@ func writeDepsTree(w io.Writer, p depth.Pkg, status []bool, isLast bool) {
 
 func init() {
 	cmdDeps.AddCommand(cmdDepsList)
-	cmdDepsList.Flags().IntVar(&maxDepth, "maxdepth", 0, "generate a graph")
+	cmdDepsList.Flags().IntVar(&maxDepth, "maxdepth", 0, "max distance between dependencies")
 	cmdDepsList.Flags().StringVar(&format, "format", "plain", "output format: plain, tree")
 }
