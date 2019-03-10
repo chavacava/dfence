@@ -17,9 +17,9 @@ import (
 
 var policyFile string
 
-var cmdCheck = &cobra.Command{
-	Use:   "check [package selector]",
-	Short: "Check policy on given packages",
+var cmdEnforce = &cobra.Command{
+	Use:   "enforce [package selector]",
+	Short: "Enforce policy on given packages",
 	Long:  "Check if the packages respect the dependencies policy.",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(infra.Logger)
@@ -55,9 +55,9 @@ var cmdCheck = &cobra.Command{
 }
 
 func init() {
-	cmdPolicy.AddCommand(cmdCheck)
-	cmdCheck.Flags().StringVar(&policyFile, "policy", "", "path to dependencies policy file ")
-	cmdCheck.MarkFlagRequired("policy")
+	cmdPolicy.AddCommand(cmdEnforce)
+	cmdEnforce.Flags().StringVar(&policyFile, "policy", "", "path to dependencies policy file ")
+	cmdEnforce.MarkFlagRequired("policy")
 }
 
 func check(p policy.Policy, pkgs []string, logger infra.Logger) error {
