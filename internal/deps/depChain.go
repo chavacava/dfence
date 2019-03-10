@@ -3,6 +3,7 @@ package deps
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/KyleBanks/depth"
 )
@@ -135,19 +136,40 @@ func (i CompoundChainItem) String() string {
 func ExplainDep(from depth.Pkg, to string) []DepChain {
 	explanations := []DepChain{}
 
-	recExplainDep(from, to, NewDepChain(), &explanations)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	quit := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(quit)
+	}()
+
+	out := make(chan DepChain)
+	recExplainDep(from, to, NewDepChain(), out, &wg)
+
+	select {
+	case explanation := <-out:
+		explanations = append(explanations, explanation)
+	case <-quit:
+		close(out)
+		break
+	}
+
 	return explanations
 }
 
-func recExplainDep(pkg depth.Pkg, explain string, chain DepChain, explanations *[]DepChain) {
+func recExplainDep(pkg depth.Pkg, explain string, chain DepChain, out chan DepChain, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	chain.Append(NewRawChainItem(pkg.Name))
 
 	if pkg.Name == explain {
-		*explanations = append(*explanations, chain.Clone())
+		out <- chain.Clone()
 		return
 	}
 
+	wg.Add(len(pkg.Deps))
 	for _, pkg := range pkg.Deps {
-		recExplainDep(pkg, explain, chain, explanations)
+		go recExplainDep(pkg, explain, chain, out, wg)
 	}
 }
