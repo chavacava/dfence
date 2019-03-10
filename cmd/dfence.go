@@ -15,15 +15,14 @@ var logLevel string
 var rootCmd = &cobra.Command{
 	Use:   "dfence",
 	Short: "Dependency fences",
-	Long: `
+	Long: color.New(color.FgHiYellow).Sprintf(`
          ________                   
     ____/ / ____/__  ____  ________ 
    / __  / /_  / _ \/ __ \/ ___/ _ \
   / /_/ / __/ /  __/ / / / /__/  __/
   \__,_/_/    \___/_/ /_/\___/\___/ 
 																		 
-	
-  dFence helps you tame your dependencies`,
+  Understand and control your dependencies`),
 
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		viper.Set("logger", buildlogger(logLevel))
@@ -59,7 +58,7 @@ func buildlogger(level string) infra.Logger {
 		warn = buildLoggerFunc("", color.New(color.FgHiYellow))
 		fallthrough
 	default:
-		err = buildLoggerFunc("", color.New(color.BgHiRed))
+		err = buildLoggerFunc("", color.New(color.FgHiRed))
 	}
 
 	fatal := buildLoggerFunc("", color.New(color.BgRed))
