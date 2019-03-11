@@ -70,9 +70,19 @@ const (
 )
 
 func writeDeps(w io.Writer, p depth.Pkg) {
-	fmt.Fprintf(w, "%s\n", p.String())
+	deps := map[string]struct{}{}
 	for _, d := range p.Deps {
-		writeDeps(w, d)
+		writeDepsRec(w, d, deps)
+	}
+	for k := range deps {
+		fmt.Fprintf(w, "%s\n", k)
+	}
+}
+
+func writeDepsRec(w io.Writer, p depth.Pkg, deps map[string]struct{}) {
+	deps[p.Name] = struct{}{}
+	for _, d := range p.Deps {
+		writeDepsRec(w, d, deps)
 	}
 }
 
