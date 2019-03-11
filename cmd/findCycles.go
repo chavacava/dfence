@@ -66,7 +66,7 @@ var cmdFindCycles = &cobra.Command{
 		}
 
 		for _, depChain := range cycles {
-			logger.Errorf("Cycle: %v", depChain)
+			logger.Errorf("Cycle: %s", depChain.String())
 		}
 
 		if graphFile != "" {
