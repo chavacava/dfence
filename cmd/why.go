@@ -3,8 +3,8 @@ package cmd
 import (
 	"log"
 
-	"github.com/KyleBanks/depth"
 	"github.com/chavacava/dfence/internal/deps"
+	dependencies "github.com/chavacava/dfence/internal/deps"
 	"github.com/chavacava/dfence/internal/infra"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -23,13 +23,13 @@ var cmdWhy = &cobra.Command{
 
 		pkgSource := args[0]
 		pkgTarget := args[1]
-		var t depth.Tree
-		err := t.Resolve(pkgSource)
+		depsRoot, err := dependencies.ResolvePkgDeps(pkgSource, maxDepth)
 		if err != nil {
-			logger.Errorf("Unable to analyze package '%s': %v", pkgSource, err.Error())
+			logger.Warningf("Unable to analyze package '%s': %v", pkgSource, err)
+			return
 		}
 
-		explanations := deps.ExplainDep(*t.Root, pkgTarget)
+		explanations := deps.ExplainDep(*depsRoot, pkgTarget)
 
 		for _, e := range explanations {
 			logger.Infof(e.String())

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/KyleBanks/depth"
+	dependencies "github.com/chavacava/dfence/internal/deps"
 	"github.com/chavacava/dfence/internal/infra"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -19,7 +20,9 @@ var format string
 var cmdDepsList = &cobra.Command{
 	Use:   "list [package selector]",
 	Short: "List dependencies of the given packages",
-	Long:  "List dependencies of the given packages",
+	Long: `List dependencies of the given packages.
+	By default it will list dependencies of the package defined in the current dir`,
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {
@@ -28,7 +31,7 @@ var cmdDepsList = &cobra.Command{
 
 		pkgSelector := "."
 		if len(args) > 0 {
-			pkgSelector = strings.Join(args, " ")
+			pkgSelector = args[0]
 		}
 
 		pkgs, err := retrievePackages(pkgSelector)
@@ -36,23 +39,19 @@ var cmdDepsList = &cobra.Command{
 			logger.Fatalf("Unable to retrieve packages using the selector '%s': %v", pkgSelector, err)
 		}
 
-		for _, p := range pkgs {
-			t := depth.Tree{}
-			if maxDepth > 0 {
-				t.MaxDepth = maxDepth
-			}
-
-			err := t.Resolve(p)
+		for _, pkg := range pkgs {
+			depsRoot, err := dependencies.ResolvePkgDeps(pkg, maxDepth)
 			if err != nil {
-				logger.Warningf("Unable to analyze package '%s': %v", p, err)
+				logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
+				continue
 			}
 
 			buf := new(bytes.Buffer)
 			switch format {
 			case "plain":
-				writeDeps(buf, *t.Root)
+				writeDeps(buf, *depsRoot)
 			case "tree":
-				writeDepsTree(buf, *t.Root, []bool{}, false)
+				writeDepsTree(buf, *depsRoot, []bool{}, false)
 			}
 
 			out := buf.String()

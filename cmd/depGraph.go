@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/KyleBanks/depth"
+	dependencies "github.com/chavacava/dfence/internal/deps"
 	"github.com/chavacava/dfence/internal/infra"
 	"github.com/chavacava/dfence/internal/policy"
 	"github.com/spf13/cobra"
@@ -48,18 +49,14 @@ var cmdDepsGraph = &cobra.Command{
 		}
 
 		deps := map[string]struct{}{}
-		for _, p := range pkgs {
-			t := depth.Tree{}
-			if maxDepth > 0 {
-				t.MaxDepth = maxDepth
-			}
-
-			err := t.Resolve(p)
+		for _, pkg := range pkgs {
+			depsRoot, err := dependencies.ResolvePkgDeps(pkg, maxDepth)
 			if err != nil {
-				logger.Warningf("Unable to analyze package '%s': %v", p, err)
+				logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
+				continue
 			}
 
-			writeDepsGraphRec(*t.Root, deps, policy, toSkip)
+			writeDepsGraphRec(*depsRoot, deps, policy, toSkip)
 		}
 
 		output := os.Stdout

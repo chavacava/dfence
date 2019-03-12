@@ -4,8 +4,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/KyleBanks/depth"
 	"github.com/chavacava/dfence/internal/deps"
+	dependencies "github.com/chavacava/dfence/internal/deps"
 	"github.com/chavacava/dfence/internal/infra"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -37,23 +37,22 @@ var cmdWho = &cobra.Command{
 		for _, pkg := range pkgs {
 			go func(pkg string) {
 				tokens <- struct{}{}
-				var t depth.Tree
-				if maxDepth > 0 {
-					t.MaxDepth = maxDepth
-				}
+				defer func() {
+					<-tokens
+					wg.Done()
+				}()
 
-				err := t.Resolve(pkg)
+				depsRoot, err := dependencies.ResolvePkgDeps(pkg, maxDepth)
 				if err != nil {
 					logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
+					return
 				}
 
-				explanations := deps.ExplainDep(*t.Root, pkgTarget)
+				explanations := deps.ExplainDep(*depsRoot, pkgTarget)
 
 				for _, e := range explanations {
 					logger.Infof(e.String())
 				}
-				<-tokens
-				wg.Done()
 			}(pkg)
 		}
 

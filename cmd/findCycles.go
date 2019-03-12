@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyleBanks/depth"
 	"github.com/chavacava/dfence/internal/deps"
+	dependencies "github.com/chavacava/dfence/internal/deps"
 	"github.com/chavacava/dfence/internal/infra"
 	"github.com/chavacava/dfence/internal/policy"
 	"github.com/spf13/cobra"
@@ -126,16 +127,13 @@ func getAllDeps(pkgs []string, logger infra.Logger) map[string]*depth.Pkg {
 	r := map[string]*depth.Pkg{}
 
 	for _, pkg := range pkgs {
-		t := depth.Tree{
-			ResolveTest: true,
-		}
-		err := t.Resolve(pkg)
+		depsRoot, err := dependencies.ResolvePkgDeps(pkg, 0)
 		if err != nil {
-			logger.Warningf("Skipping package '%s', unable to analyze: %v", pkg, err.Error())
+			logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
 			continue
 		}
 
-		r[pkg] = t.Root
+		r[pkg] = depsRoot
 	}
 
 	logger.Debugf("Retrieving dependencies... done")

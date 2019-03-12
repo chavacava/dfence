@@ -3,8 +3,6 @@ package deps
 
 import (
 	"fmt"
-
-	"github.com/KyleBanks/depth"
 )
 
 // DepChainItem defines the type of items composing dependency chains
@@ -129,26 +127,4 @@ func (i CompoundChainItem) name() string {
 // String representation of this item
 func (i CompoundChainItem) String() string {
 	return fmt.Sprintf("%s [%s]", i.aName, i.attr)
-}
-
-// ExplainDep yields a list of dependency chains going from -> ... -> to
-func ExplainDep(from depth.Pkg, to string) []DepChain {
-	explanations := []DepChain{}
-
-	recExplainDep(from, to, NewDepChain(), &explanations)
-
-	return explanations
-}
-
-func recExplainDep(pkg depth.Pkg, explain string, chain DepChain, explanations *[]DepChain) {
-	chain.Append(NewRawChainItem(pkg.Name))
-
-	if pkg.Name == explain {
-		*explanations = append(*explanations, chain)
-		return
-	}
-
-	for _, dep := range pkg.Deps {
-		recExplainDep(dep, explain, chain.Clone(), explanations)
-	}
 }
