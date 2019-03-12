@@ -26,7 +26,6 @@ var cmdFindCycles = &cobra.Command{
 			log.Fatal("Unable to retrieve the logger.") // revive:disable-line:deep-exit
 		}
 
-		var err error
 		stream, err := os.Open(policyFile)
 		if err != nil {
 			logger.Fatalf("Unable to open policy file %s: %+v", policyFile, err)
