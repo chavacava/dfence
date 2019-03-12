@@ -12,10 +12,10 @@ import (
 )
 
 var cmdWho = &cobra.Command{
-	Use:   "who [package] [package selector]",
+	Use:   "who [package]",
 	Short: "Explains what packages, from a package list, depend on a package",
 	Long:  "Explains what packages, from a package list, depend on a package",
-	Args:  cobra.MinimumNArgs(2),
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {
@@ -23,7 +23,7 @@ var cmdWho = &cobra.Command{
 		}
 
 		pkgTarget := args[0]
-		pkgSelector := args[1]
+		pkgSelector := "./..."
 		pkgs, err := retrievePackages(pkgSelector)
 		if err != nil {
 			logger.Fatalf("Unable to retrieve packages using the selector '%s': %v", pkgSelector, err)
