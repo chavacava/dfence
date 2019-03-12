@@ -17,9 +17,9 @@ import (
 var skip string
 
 var cmdDepsGraph = &cobra.Command{
-	Use:   "graph [package selector]",
+	Use:   "graph",
 	Short: "Outputs a graph of dependencies",
-	Long:  "Outputs a graph of dependencies",
+	Long:  "Outputs a graph of dependencies among all packages under the current directory",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {

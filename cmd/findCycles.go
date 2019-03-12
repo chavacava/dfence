@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/KyleBanks/depth"
 	"github.com/chavacava/dfence/internal/deps"
@@ -18,9 +17,9 @@ import (
 var graphFile string
 
 var cmdFindCycles = &cobra.Command{
-	Use:   "find-cycles [package selector]",
-	Short: "Spots dependency cycles among the given packages",
-	Long:  "Spot dependency cycles among the given packages",
+	Use:   "find-cycles",
+	Short: "Spots dependency cycles",
+	Long:  "Spot dependency cycles by analizing all packages under the current directory",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {
@@ -37,7 +36,7 @@ var cmdFindCycles = &cobra.Command{
 			logger.Fatalf("Unable to load policy : %v", err) // revive:disable-line:deep-exit
 		}
 
-		pkgSelector := strings.Join(args, " ")
+		pkgSelector := "./..."
 		logger.Infof("Retrieving packages...")
 		pkgs, err := retrievePackages(pkgSelector)
 		if err != nil {
@@ -107,11 +106,11 @@ func getCompsForPkgs(pkgs []string, p policy.Policy) (map[string]string, []error
 	for _, pkg := range pkgs {
 		comps, ok := p.ComponentsForPackage(pkg)
 		if !ok {
-			errs = append(errs, fmt.Errorf("unable to check cycles, package %s is not in a component", pkg))
+			errs = append(errs, fmt.Errorf("Unable to check cycles, package %s is not in a component", pkg))
 			continue
 		}
 		if len(comps) > 1 {
-			errs = append(errs, fmt.Errorf("package %s belongs multiple components: %v", pkg, comps))
+			errs = append(errs, fmt.Errorf("Package %s belongs multiple components: %v", pkg, comps))
 			continue
 		}
 
