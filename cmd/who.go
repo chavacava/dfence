@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/chavacava/dfence/internal/deps"
-	dependencies "github.com/chavacava/dfence/internal/deps"
 	"github.com/chavacava/dfence/internal/infra"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -42,13 +41,14 @@ var cmdWho = &cobra.Command{
 					wg.Done()
 				}()
 
-				depsRoot, err := dependencies.ResolvePkgDeps(pkg, maxDepth)
+				depsRoot, err := deps.ResolvePkgDeps(pkg, maxDepth)
+				depsRoot.Deps()
 				if err != nil {
 					logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
 					return
 				}
 
-				explanations := deps.ExplainDep(*depsRoot, pkgTarget)
+				explanations := deps.ExplainDep(depsRoot, pkgTarget)
 
 				for _, e := range explanations {
 					logger.Infof(e.String())

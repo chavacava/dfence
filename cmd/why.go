@@ -29,7 +29,7 @@ var cmdWhy = &cobra.Command{
 			return
 		}
 
-		explanations := deps.ExplainDep(*depsRoot, pkgTarget)
+		explanations := deps.ExplainDep(depsRoot, pkgTarget)
 
 		for _, e := range explanations {
 			logger.Infof(e.String())

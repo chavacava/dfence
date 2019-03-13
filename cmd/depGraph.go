@@ -6,8 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/KyleBanks/depth"
-	dependencies "github.com/chavacava/dfence/internal/deps"
+	"github.com/chavacava/dfence/internal/deps"
 	"github.com/chavacava/dfence/internal/infra"
 	"github.com/chavacava/dfence/internal/policy"
 	"github.com/spf13/cobra"
@@ -50,13 +49,13 @@ var cmdDepsGraph = &cobra.Command{
 
 		edges := map[string]struct{}{}
 		for _, pkg := range pkgs {
-			depsRoot, err := dependencies.ResolvePkgDeps(pkg, maxDepth)
+			depsRoot, err := deps.ResolvePkgDeps(pkg, maxDepth)
 			if err != nil {
 				logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
 				continue
 			}
 
-			writeDepsGraphRec(*depsRoot, edges, policy, toSkip)
+			writeDepsGraphRec(depsRoot, edges, policy, toSkip)
 		}
 
 		output := os.Stdout
@@ -76,14 +75,14 @@ var cmdDepsGraph = &cobra.Command{
 	},
 }
 
-func writeDepsGraphRec(p depth.Pkg, edges map[string]struct{}, policy policy.Policy, toSkip map[string]bool) {
+func writeDepsGraphRec(p deps.Pkg, edges map[string]struct{}, policy policy.Policy, toSkip map[string]bool) {
 	from := getNodeLabel(p, policy)
 
 	if toSkip[from] {
 		return
 	}
 	
-	for _, d := range p.Deps {
+	for _, d := range p.Deps() {
 		to := getNodeLabel(d, policy)
 
 		if mustSkip(from, to, toSkip) {
@@ -100,8 +99,8 @@ func mustSkip(from, to string, toSkip map[string]bool) bool {
 	return from == to || toSkip[from] || toSkip[to]
 }
 
-func getNodeLabel(p depth.Pkg, policy policy.Policy) string {
-	comps, ok := policy.ComponentsForPackage(p.Name)
+func getNodeLabel(p deps.Pkg, policy policy.Policy) string {
+	comps, ok := policy.ComponentsForPackage(p.Name())
 	if !ok {
 		return "UNDEFINED"
 	}

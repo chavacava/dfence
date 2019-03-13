@@ -7,8 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/KyleBanks/depth"
-	dependencies "github.com/chavacava/dfence/internal/deps"
+	"github.com/chavacava/dfence/internal/deps"
 	"github.com/chavacava/dfence/internal/infra"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -40,7 +39,7 @@ var cmdDepsList = &cobra.Command{
 		}
 
 		for _, pkg := range pkgs {
-			depsRoot, err := dependencies.ResolvePkgDeps(pkg, maxDepth)
+			depsRoot, err := deps.ResolvePkgDeps(pkg, maxDepth)
 			if err != nil {
 				logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
 				continue
@@ -49,9 +48,9 @@ var cmdDepsList = &cobra.Command{
 			buf := new(bytes.Buffer)
 			switch format {
 			case "plain":
-				writeDeps(buf, *depsRoot)
+				writeDeps(buf, depsRoot)
 			case "tree":
-				writeDepsTree(buf, *depsRoot, []bool{}, false)
+				writeDepsTree(buf, depsRoot, []bool{}, false)
 			}
 
 			out := buf.String()
@@ -68,9 +67,9 @@ const (
 	outputPrefixLast = "└ "
 )
 
-func writeDeps(w io.Writer, p depth.Pkg) {
+func writeDeps(w io.Writer, p deps.Pkg) {
 	deps := map[string]struct{}{}
-	for _, d := range p.Deps {
+	for _, d := range p.Deps() {
 		writeDepsRec(w, d, deps)
 	}
 	for k := range deps {
@@ -78,15 +77,15 @@ func writeDeps(w io.Writer, p depth.Pkg) {
 	}
 }
 
-func writeDepsRec(w io.Writer, p depth.Pkg, deps map[string]struct{}) {
-	deps[p.Name] = struct{}{}
-	for _, d := range p.Deps {
+func writeDepsRec(w io.Writer, p deps.Pkg, deps map[string]struct{}) {
+	deps[p.Name()] = struct{}{}
+	for _, d := range p.Deps() {
 		writeDepsRec(w, d, deps)
 	}
 }
 
 // writeDepsTree borrowed from  https://github.com/KyleBanks/depth/blob/master/cmd/depth/depth.go
-func writeDepsTree(w io.Writer, p depth.Pkg, status []bool, isLast bool) {
+func writeDepsTree(w io.Writer, p deps.Pkg, status []bool, isLast bool) {
 	for i, isOpen := range status {
 		if i == 0 {
 			fmt.Fprintf(w, " ")
@@ -116,8 +115,9 @@ func writeDepsTree(w io.Writer, p depth.Pkg, status []bool, isLast bool) {
 
 	fmt.Fprintf(w, "%v%v\n", prefix, p.String())
 
-	for idx, d := range p.Deps {
-		writeDepsTree(w, d, status, idx == len(p.Deps)-1)
+	kDeps := len(p.Deps())
+	for idx, d := range p.Deps() {
+		writeDepsTree(w, d, status, idx == kDeps-1)
 	}
 }
 

@@ -5,9 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/KyleBanks/depth"
 	"github.com/chavacava/dfence/internal/deps"
-	dependencies "github.com/chavacava/dfence/internal/deps"
 	"github.com/chavacava/dfence/internal/infra"
 	"github.com/chavacava/dfence/internal/policy"
 	"github.com/spf13/cobra"
@@ -120,13 +118,13 @@ func getCompsForPkgs(pkgs []string, p policy.Policy) (map[string]string, []error
 	return r, errs
 }
 
-func getAllDeps(pkgs []string, logger infra.Logger) map[string]*depth.Pkg {
+func getAllDeps(pkgs []string, logger infra.Logger) map[string]deps.Pkg {
 	logger.Debugf("Retrieving dependencies...")
 
-	r := map[string]*depth.Pkg{}
+	r := map[string]deps.Pkg{}
 
 	for _, pkg := range pkgs {
-		depsRoot, err := dependencies.ResolvePkgDeps(pkg, 0)
+		depsRoot, err := deps.ResolvePkgDeps(pkg, 0)
 		if err != nil {
 			logger.Warningf("Unable to analyze package '%s': %v", pkg, err)
 			continue
@@ -140,7 +138,7 @@ func getAllDeps(pkgs []string, logger infra.Logger) map[string]*depth.Pkg {
 	return r
 }
 
-func findCycles(pkg string, allDeps map[string]*depth.Pkg, pkg2comp map[string]string, logger infra.Logger) []deps.DepChain {
+func findCycles(pkg string, allDeps map[string]deps.Pkg, pkg2comp map[string]string, logger infra.Logger) []deps.DepChain {
 	cycles := []deps.DepChain{}
 
 	comp, ok := pkg2comp[pkg]
@@ -153,37 +151,37 @@ func findCycles(pkg string, allDeps map[string]*depth.Pkg, pkg2comp map[string]s
 
 	depChain := deps.NewDepChain()
 	depChain.Append(deps.NewCompoundChainItem(comp, pkg))
-	for _, dep := range allDeps[pkg].Deps {
-		rFindCycles(&dep, allDeps, depChain, &cycles, pkg2comp, logger)
+	for _, dep := range allDeps[pkg].Deps() {
+		rFindCycles(dep, allDeps, depChain, &cycles, pkg2comp, logger)
 	}
 
 	return cycles
 }
 
-func rFindCycles(pkg *depth.Pkg, allDeps map[string]*depth.Pkg, depChain deps.DepChain, cycles *[]deps.DepChain, pkg2comp map[string]string, logger infra.Logger) {
+func rFindCycles(pkg deps.Pkg, allDeps map[string]deps.Pkg, depChain deps.DepChain, cycles *[]deps.DepChain, pkg2comp map[string]string, logger infra.Logger) {
 	if pkg == nil {
 		return // skip if pkg is nil. It happens in some cases TODO(chavacava)
 	}
 
-	comp, ok := pkg2comp[pkg.Name]
+	comp, ok := pkg2comp[pkg.Name()]
 	if !ok {
 		return // skip the package because it does not belong to any known component
 	}
 
-	depChain.Append(deps.NewCompoundChainItem(comp, pkg.Name))
+	depChain.Append(deps.NewCompoundChainItem(comp, pkg.Name()))
 
 	if depChain.IsCyclic() {
 		*cycles = append(*cycles, depChain.Clone())
 		return
 	}
 
-	_, ok = allDeps[pkg.Name]
+	_, ok = allDeps[pkg.Name()]
 	if !ok {
 		logger.Debugf("No deps info of %s", pkg.Name)
 		return
 	}
 
-	for _, dep := range allDeps[pkg.Name].Deps {
-		rFindCycles(&dep, allDeps, depChain, cycles, pkg2comp, logger)
+	for _, dep := range allDeps[pkg.Name()].Deps() {
+		rFindCycles(dep, allDeps, depChain, cycles, pkg2comp, logger)
 	}
 }
