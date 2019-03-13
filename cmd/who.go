@@ -13,8 +13,8 @@ import (
 
 var cmdWho = &cobra.Command{
 	Use:   "who [package]",
-	Short: "Explains what packages, from a package list, depend on a package",
-	Long:  "Explains what packages, from a package list, depend on a package",
+	Short: "Shows what packages depend on a given package",
+	Long:  "Shows what packages depend on a given package",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(infra.Logger)
