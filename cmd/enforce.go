@@ -18,9 +18,10 @@ import (
 var policyFile string
 
 var cmdEnforce = &cobra.Command{
-	Use:   "enforce [package selector]",
+	Use:   "enforce",
 	Short: "Enforce policy on given packages",
 	Long:  "Check if the packages respect the dependencies policy.",
+	Args: cobra.MaximumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		logger, ok := viper.Get("logger").(infra.Logger)
 		if !ok {
@@ -38,7 +39,7 @@ var cmdEnforce = &cobra.Command{
 			logger.Fatalf("Unable to load policy : %v", err) // revive:disable-line:deep-exit
 		}
 
-		pkgSelector := strings.Join(args, " ")
+		const pkgSelector = "./..."
 		logger.Infof("Retrieving packages...")
 		pkgs, err := retrievePackages(pkgSelector)
 		if err != nil {
