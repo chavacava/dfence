@@ -48,7 +48,7 @@ var cmdDepsGraph = &cobra.Command{
 			toSkip[s] = true
 		}
 
-		deps := map[string]struct{}{}
+		edges := map[string]struct{}{}
 		for _, pkg := range pkgs {
 			depsRoot, err := dependencies.ResolvePkgDeps(pkg, maxDepth)
 			if err != nil {
@@ -56,7 +56,7 @@ var cmdDepsGraph = &cobra.Command{
 				continue
 			}
 
-			writeDepsGraphRec(*depsRoot, deps, policy, toSkip)
+			writeDepsGraphRec(*depsRoot, edges, policy, toSkip)
 		}
 
 		output := os.Stdout
@@ -69,16 +69,20 @@ var cmdDepsGraph = &cobra.Command{
 		}
 
 		fmt.Fprintln(output, "strict digraph deps {")
-		for k := range deps {
+		for k := range edges {
 			fmt.Fprintf(output, "%s\n", k)
 		}
 		fmt.Fprintln(output, "}")
 	},
 }
 
-func writeDepsGraphRec(p depth.Pkg, deps map[string]struct{}, policy policy.Policy, toSkip map[string]bool) {
+func writeDepsGraphRec(p depth.Pkg, edges map[string]struct{}, policy policy.Policy, toSkip map[string]bool) {
 	from := getNodeLabel(p, policy)
 
+	if toSkip[from] {
+		return
+	}
+	
 	for _, d := range p.Deps {
 		to := getNodeLabel(d, policy)
 
@@ -86,9 +90,9 @@ func writeDepsGraphRec(p depth.Pkg, deps map[string]struct{}, policy policy.Poli
 			continue
 		}
 
-		deps[from+" -> "+to] = struct{}{}
+		edges[fmt.Sprintf(`"%s" -> "%s"`,from,to)] = struct{}{}
 
-		writeDepsGraphRec(d, deps, policy, toSkip)
+		writeDepsGraphRec(d, edges, policy, toSkip)
 	}
 }
 
