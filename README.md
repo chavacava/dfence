@@ -13,6 +13,23 @@ A _dependencies policy_ defines dependencies constraints among the
 components of your application. **dFence** will check that constraints
 are respected.
 
+## Installation
+
+```
+go get github.com/chavacava/dfence
+```
+
+Requirements:
+
+* GO >= 1.11 installed
+
+### Building from sources
+
+1. clone the repo: `git clone https://github.com/chavacava/dfence.git`
+2. set `GO111MODULE=on`
+3. `make build` will generate an executable under `./bin`
+
+
 ## Describing dependencies policies
 
 `dFence` will enforce dependencies policies described through a JSON file like the 
@@ -62,7 +79,7 @@ following:
 
 ```
 Usage:
-  dfence policy check [package selector] [flags]
+  dfence policy enforce [flags]
 
 Flags:
   -h, --help            help for check
@@ -72,125 +89,44 @@ Global Flags:
       --log string   log level: none, error, warn, info, debug (default "info")
 ```
 
-**dFence** will perform the check on the package set defined by the 
-_package selector_. Typically you will use `.` or `./...` to refer to the 
-package defined in the current directory or to packages defined in the current 
+**dFence** will perform the check on packages defined in the current 
 directory and its subdirectories respectively.
 
 Examples:
 
 ```
-dfence -log debug -policy policy.revive.json ./...
+dfence policy enforce -log debug -policy policy.revive.json
 ```
 
 The above command runs `dfence` tu enforce constraints described in the file
 `policy.revive.json` and over all the packages in the current directory and its
 subdirectories.
 
-```
-dfence -policy policy.revive.json .
-```
-
-The above command runs `dfence` tu enforce constraints described in the file
-`policy.revive.json` and over all the packages in the current directory.
-
 ### Other functionalities
 
 **dFence** also provides commands for analyzing dependencies and to facilitate
 the definition of policies.
-
-#### `find-cycles`
-
-This command will look for dependencies cycles.
+All these functionalities are accessible through commands under the `deps` command.
 
 ```
+dfence deps --help
+Executes dependencies-related commands
+
 Usage:
-  dfence deps find-cycles [package selector] [flags]
+  dfence deps [command] [flags]
+  dfence deps [command]
+
+Available Commands:
+  find-cycles Spots dependency cycles
+  graph       Outputs a graph of dependencies
+  list        List dependencies of the given packages
+  who         Shows what packages depend on a given package
+  why         Explains why a package depends on the other
 
 Flags:
-      --graph string    path of the graph of cyclic dependencies to be generated
-  -h, --help            help for find-cycles
-      --policy string   path to dependencies policy file
-
-Global Flags:
-      --log string   log level: none, error, warn, info, debug (default "info")
-```
-
-Example:
-
-```
-dfence deps find-cycles -policy policy.revive.json ./...
-```
-
-#### `list` 
-
-Lists dependencies of packages
-
-```
-Usage:
-  dfence deps list [package selector] [flags]
-
-Flags:
-      --format string   output format: plain, tree (default "plain")
-  -h, --help            help for list
-      --maxdepth int    maximum level of dependency nesting
-
-Global Flags:
-      --log string   log level: none, error, warn, info, debug (default "info")
-```
-
-Example:
-
-```
-dfence deps list ./... --format tree
-```
-
-#### `who`
-
-List all packages that depend on a given one
-
-```
-Usage:
-  dfence deps who [package] [package selector] [flags]
-
-Flags:
-      --graph   generate a graph
-  -h, --help    help for who
+  -h, --help   help for deps
 
 Global Flags:
       --log string   log level: none, error, warn, info, debug (default "info")
 
-```
-
-Example:
-
-```
-dfence deps who github.com/spf13/jwalterweatherman ./...
-```
-
-Output:
-
-```
-github.com/chavacava/dfence/cmd -> github.com/spf13/viper -> github.com/spf13/jwalterweatherman
-```
-
-#### `why`
-
-Explains why a package depends on the other
-
-```
-Usage:
-  dfence deps why [package] [package] [flags]
-
-Flags:
-  -h, --help   help for why
-
-Global Flags:
-      --log string   log level: none, error, warn, info, debug (default "info")
-```
-
-Example:
-
-```
-dfence deps why github.com/chavacava/dfence  github.com/pelletier/go-toml
 ```
