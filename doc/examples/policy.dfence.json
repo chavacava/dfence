@@ -1,0 +1,28 @@
+{
+    "components":{
+        "cli":"#dfence/cmd.*",
+        "main":"#dfence$",
+        "internal":"dfence/internal",
+        "vendored":"github.com"
+    },
+    "constraints":[
+        {
+            "scope":"internal",
+            "kind":"forbid",
+            "deps":"cli",
+            "onbreak":"error"
+        },
+        {
+            "scope":"cli",
+            "kind":"allow",
+            "deps":"internal vendored",
+            "onbreak":"error"
+        },
+        {
+            "scope":"main",
+            "kind":"allow",
+            "deps":"cli",
+            "onbreak":"error"
+        }
+    ]
+}

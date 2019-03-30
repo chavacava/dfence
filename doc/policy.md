@@ -45,3 +45,12 @@ github.com/pkg/errors
 | `chavacava` | plain | github.com/chavacava/dfence <br> github.com/chavacava/dfence/cmd <br> github.com/chavacava/dfence/internal <br> github.com/chavacava/dbc4go |
 | `#github.com/chavacava/dfence$` | regexp | github.com/chavacava/dfence |
 | `#github\.com\/(?!pkg).*` | regexp | github.com/chavacava/dbc4go <br>github.com/chavacava/dfence<br>github.com/chavacava/dfence/cmd<br>github.com/chavacava/dfence/internal<br>github.com/pkg/errors |
+
+## Examples
+
+Available policy examples:
+
+| Policy | Application |
+|--------|-------------|
+| [`policy.dfence`](./examples/policy.dfence.json) | [dFence](http://github.com/chavacava/dfence) |
+| [`policy.revive`](./examples/policy.revive.json) | [revive](http://github.com/mgechev/revive)   |
