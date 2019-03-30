@@ -6,6 +6,7 @@ import (
 	"github.com/KyleBanks/depth"
 )
 
+// Pkg represents a GO package
 type Pkg interface {
 	Name() string
 	Deps() []Pkg
@@ -13,7 +14,7 @@ type Pkg interface {
 }
 
 type depthPkg struct {
-	pkg depth.Pkg
+	pkg  depth.Pkg
 	deps []Pkg
 }
 
@@ -25,16 +26,16 @@ func (p depthPkg) Name() string {
 }
 
 func (p depthPkg) Deps() []Pkg {
-	if len(p.deps)>0 {
+	if len(p.deps) > 0 {
 		return p.deps
 	}
 
 	p.deps = []Pkg{}
 	for _, pkg := range p.pkg.Deps {
-		p.deps = append(p.deps, &depthPkg{pkg:pkg})
+		p.deps = append(p.deps, &depthPkg{pkg: pkg})
 	}
 
-	return p.deps 
+	return p.deps
 }
 
 // ExplainDep yields a list of dependency chains going from -> ... -> to
@@ -61,7 +62,7 @@ func recExplainDep(pkg Pkg, explain string, chain DepChain, explanations *[]DepC
 
 // ResolvePkgDeps recursively finds all dependencies for the root pkg name provided,
 // and the packages it depends on.
-func ResolvePkgDeps(pkg string, maxDepth int) (depthPkg, error) {
+func ResolvePkgDeps(pkg string, maxDepth int) (Pkg, error) {
 	t := depth.Tree{ResolveTest: true}
 	if maxDepth > 0 {
 		t.MaxDepth = maxDepth
@@ -69,5 +70,5 @@ func ResolvePkgDeps(pkg string, maxDepth int) (depthPkg, error) {
 
 	err := t.Resolve(pkg)
 
-	return depthPkg{pkg:*t.Root}, err
+	return depthPkg{pkg: *t.Root}, err
 }
