@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sort"
 	"strings"
 
 	"github.com/chavacava/dfence/internal/deps"
@@ -70,18 +71,32 @@ const (
 func writeDeps(w io.Writer, p deps.Pkg) {
 	deps := map[string]struct{}{}
 	for _, d := range p.Deps() {
-		writeDepsRec(w, d, deps)
+		getDepsRec(d, &deps)
 	}
+	keys := []string{}
 	for k := range deps {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for _, k := range keys {
 		fmt.Fprintf(w, "%s\n", k)
 	}
 }
 
-func writeDepsRec(w io.Writer, p deps.Pkg, deps map[string]struct{}) {
-	deps[p.Name()] = struct{}{}
-	for _, d := range p.Deps() {
-		writeDepsRec(w, d, deps)
+func getDepsRec(p deps.Pkg, deps *map[string]struct{}) *map[string]struct{} {
+	d := *deps
+	if _, alreadySeen := d[p.Name()]; alreadySeen {
+		return deps
 	}
+
+	d[p.Name()] = struct{}{}
+	for _, d := range p.Deps() {
+		getDepsRec(d, deps)
+	}
+
+	return deps
 }
 
 // writeDepsTree borrowed from  https://github.com/KyleBanks/depth/blob/master/cmd/depth/depth.go
