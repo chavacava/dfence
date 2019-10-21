@@ -147,6 +147,11 @@ func findCycles(pkg string, allDeps map[string]deps.Pkg, pkg2comp map[string]str
 		return cycles
 	}
 
+	//ignore option enables to avoid uninteresting packages
+	if comp == "ignore" {
+		return cycles
+	}
+
 	logger.Debugf("Searching cycles for: %s of component %s", pkg, comp)
 
 	depChain := deps.NewDepChain()
