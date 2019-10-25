@@ -51,7 +51,9 @@ var cmdWho = &cobra.Command{
 				explanations := deps.ExplainDep(depsRoot, pkgTarget)
 
 				for _, e := range explanations {
-					logger.Infof(e.String())
+					for i := 0; i < len(e.Items())-1; i++ {
+						logger.Infof(e.Items()[i].String())
+					}
 				}
 			}(pkg)
 		}
