@@ -30,12 +30,17 @@
           "type": "object",
           "description": "Dependencies constraint",
           "required": [
+            "name",
             "scope",
             "kind",
             "deps",
             "onbreak"
           ],
           "properties": {
+            "name": {
+              "description": "User-friendly name of this constraint",
+              "type": "string"
+            },
             "scope": {
               "description": "Comma separated list of components to which applies this constraint",
               "type": "string"

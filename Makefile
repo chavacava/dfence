@@ -9,7 +9,7 @@ GOGENERATE=$(GOCMD) generate
 GOLIST=$(GOCMD) list
 
 # Sources parameters
-SOURCE_ENTRYPOINT=./main.go 
+SOURCE_ENTRYPOINT=./cmd/dfence.go 
 
 # Binary parameters
 BINARY_NAME=dfence

@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/KyleBanks/depth"
+	"github.com/chavacava/dfence/internal/deps"
+	"golang.org/x/tools/go/packages"
 )
 
 type logger interface {
@@ -15,13 +16,19 @@ type logger interface {
 
 // Checker models a dependencies constraints checker
 type Checker struct {
-	policy Policy
-	logger logger
+	policy        Policy
+	depsContainer *deps.DependenciesContainer
+	logger        logger
 }
 
 // NewChecker yields a dependencies constraint checker
-func NewChecker(p Policy, l logger) (Checker, error) {
-	return Checker{policy: p, logger: l}, nil
+func NewChecker(p Policy, pkgs []*packages.Package, l logger) (*Checker, error) {
+	depsContainer, err := deps.NewDependenciesContainer()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Checker{policy: p, depsContainer: depsContainer, logger: l}, nil
 }
 
 // String yields a string representation of this checker
@@ -40,11 +47,11 @@ func buildCheckResult(warns, errs []error) CheckResult {
 }
 
 // CheckPkg checks if the given package respects the dependency constraints of this checker
-func (c Checker) CheckPkg(pkg string, out chan<- CheckResult) {
+func (c Checker) CheckPkg(pkg *packages.Package, out chan<- CheckResult) {
 	errs := []error{}
 	warns := []error{}
 
-	applicableConstraints := c.policy.GetApplicableConstraints(pkg)
+	applicableConstraints := c.policy.GetApplicableConstraints(pkg.PkgPath)
 
 	c.logger.Debugf("Checking (%d constraints) package %s", len(applicableConstraints), pkg)
 	if len(applicableConstraints) == 0 {
@@ -53,26 +60,15 @@ func (c Checker) CheckPkg(pkg string, out chan<- CheckResult) {
 		return
 	}
 
-	t := depth.Tree{
-		ResolveTest: true,
-	}
-
-	err := t.Resolve(pkg)
-	if err != nil {
-		out <- buildCheckResult(warns, append(errs, fmt.Errorf("unable to get dependencies of %s: %v", pkg, err)))
-		return
-	}
-
-	pkgDeps := t.Root.Deps
-
+	pkgDeps := c.depsContainer.GetPkgDeps(pkg)
 	for _, constr := range applicableConstraints {
 		switch kind := constr.kind; kind {
 		case Allow:
-			w, e := c.checkAllowConstraint(constr, pkg, pkgDeps)
+			w, e := c.checkAllowConstraint(constr, pkg.PkgPath, pkgDeps)
 			warns = append(warns, w...)
 			errs = append(errs, e...)
 		case Forbid:
-			w, e := c.checkForbidConstraint(constr, pkg, pkgDeps)
+			w, e := c.checkForbidConstraint(constr, pkg.PkgPath, pkgDeps)
 			warns = append(warns, w...)
 			errs = append(errs, e...)
 		default:
@@ -83,59 +79,50 @@ func (c Checker) CheckPkg(pkg string, out chan<- CheckResult) {
 	out <- buildCheckResult(warns, errs)
 }
 
-func (c Checker) checkAllowConstraint(constraint CanonicalConstraint, pkg string, pkgDeps []depth.Pkg) (warns []error, errs []error) {
+func (c Checker) checkAllowConstraint(constraint CanonicalConstraint, pkg string, pkgDeps map[string]struct{}) (warns []error, errs []error) {
 	errs = []error{}
 	warns = []error{}
 
-	for _, d := range pkgDeps {
-		if d.Internal {
-			continue // skip stdlib packages
-		}
-
-		ok := false
+	for depName := range pkgDeps {
+		matchedAtLeastOne := false
 		for _, t := range constraint.depPatterns {
-			c.logger.Debugf("allow: %s matches %s ?", d.Name, t.String())
-			if t.match(d.Name) {
-				ok = true
+			c.logger.Debugf("allow: %s matches %s ?", depName, t.String())
+			if t.match(depName) {
+				c.logger.Debugf("allow: YES")
+				matchedAtLeastOne = true
 				break
 			}
+			c.logger.Debugf("allow: NO")
 		}
 
-		if !ok {
-			warns, errs = c.appendByLevel(warns, errs, constraint.onBreak, fmt.Sprintf("%s depends on %s", pkg, d.Name))
+		if !matchedAtLeastOne {
+			warns, errs = c.appendByLevel(warns, errs, constraint.onBreak, fmt.Sprintf("%s depends on %s so it breaks %q", pkg, depName, constraint.name))
 		}
 	}
 
 	return warns, errs
 }
 
-func (c Checker) checkForbidConstraint(constraint CanonicalConstraint, pkg string, pkgDeps []depth.Pkg) (warns []error, errs []error) {
+func (c Checker) checkForbidConstraint(constraint CanonicalConstraint, pkg string, pkgDeps map[string]struct{}) (warns []error, errs []error) {
 	errs = []error{}
 	warns = []error{}
 
-	for _, d := range pkgDeps {
-		if d.Internal {
-			continue // skip stdlib packages
-		}
-
-		ok := true
+	for depName := range pkgDeps {
 		for _, t := range constraint.depPatterns {
-			c.logger.Debugf("forbid: %s matches %s ?", d.Name, t.String())
-			if t.match(d.Name) {
-				ok = false
+			c.logger.Debugf("forbid: %s matches %s ?", depName, t.String())
+			if t.match(depName) {
+				c.logger.Debugf("forbid: YES (ERROR)")
+				warns, errs = c.appendByLevel(warns, errs, constraint.onBreak, fmt.Sprintf("%s depends on %s so it breaks %s", pkg, depName, constraint.name))
 				break
 			}
-		}
-
-		if !ok {
-			warns, errs = c.appendByLevel(warns, errs, constraint.onBreak, fmt.Sprintf("%s depends on %s", pkg, d.Name))
+			c.logger.Debugf("forbid: NO")
 		}
 	}
 
 	return warns, errs
 }
 
-func (c Checker) appendByLevel(w, e []error, level errorLevel, msg string) (warns []error, errs []error) {
+func (Checker) appendByLevel(w, e []error, level errorLevel, msg string) (warns []error, errs []error) {
 	newErr := errors.New(msg)
 
 	if level == Warn {

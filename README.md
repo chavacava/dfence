@@ -4,13 +4,13 @@
 
 ![logo](./doc/dfence-logo.png)
 
-# dfence
+# dFence
 
 **dFence** (for _dependencies fence_) helps maintaining dependencies under 
 control by enforcing dependencies policies on your packages.
 
 A _dependencies policy_ defines dependencies constraints among the
-components of your application. **dFence** will check that constraints
+components of your application. **dFence** will check if these constraints
 are respected.
 
 ## Installation
@@ -29,6 +29,31 @@ Requirements:
 2. set `GO111MODULE=on`
 3. `make build` will generate an executable under `./bin`
 
+## Usage
+
+```
+  dfence [flags]
+
+  -log string
+        log level: none, error, warn, info, debug (default "error")
+  -mode string
+        run mode (check or info) (default "check")
+  -policy string
+        the policy file to enforce (default "dfence.json")
+```
+
+**dFence** will perform the check on packages defined in the current 
+directory and its subdirectories.
+
+Examples:
+
+```
+dfence -log debug -policy policy.revive.json
+```
+
+The above command runs `dfence` to enforce constraints described in the file
+`policy.revive.json` and over all the packages in the current directory and its
+subdirectories.
 
 ## Describing dependencies policies
 
@@ -61,7 +86,7 @@ The `constraints` section contains the dependency constraints to enforce.
 constraint applies.
 
 A constraint can be of one of two `kind`s: `forbid` or `allows`. Meaning that a
-a dependency will be forbidden (accepted) if it matches with one of the package 
+a dependency will be forbidden (or accepted) if it matches with one of the package 
 patterns in `deps`.
 The `onbreak` field can take one of two values, `warn` or `error`; it 
 indicates the error level to produce when the constraint is not respected.
@@ -70,63 +95,6 @@ The previous example can be read: _Rise an error if a package with a path
 containing `dfence/internal` depends on a package with a path containing 
 `dfence/cmd`._
 
-The JSON Schema for the policy file is available [here](./doc/policy.schema.json)
+Please read the [more detailed documentation on how to write policies](./doc/policy.md).
+Also, a JSON Schema for the policy file is [available here](./doc/policy.schema.json)
 
-## Usage
-
-Constraint checking is the main functionality of **dFence**, its usage is the
-following:
-
-```
-Usage:
-  dfence policy enforce [flags]
-
-Flags:
-  -h, --help            help for check
-      --policy string   path to dependencies policy file
-
-Global Flags:
-      --log string   log level: none, error, warn, info, debug (default "info")
-```
-
-**dFence** will perform the check on packages defined in the current 
-directory and its subdirectories respectively.
-
-Examples:
-
-```
-dfence policy enforce -log debug -policy policy.revive.json
-```
-
-The above command runs `dfence` tu enforce constraints described in the file
-`policy.revive.json` and over all the packages in the current directory and its
-subdirectories.
-
-### Other functionalities
-
-**dFence** also provides commands for analyzing dependencies and to facilitate
-the definition of policies.
-All these functionalities are accessible through commands under the `deps` command.
-
-```
-dfence deps --help
-Executes dependencies-related commands
-
-Usage:
-  dfence deps [command] [flags]
-  dfence deps [command]
-
-Available Commands:
-  find-cycles Spots dependency cycles
-  graph       Outputs a graph of dependencies
-  list        List dependencies of the given packages
-  who         Shows what packages depend on a given package
-  why         Explains why a package depends on the other
-
-Flags:
-  -h, --help   help for deps
-
-Global Flags:
-      --log string   log level: none, error, warn, info, debug (default "info")
-
-```

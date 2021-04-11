@@ -12,30 +12,35 @@
     },
     "constraints":[
         {
+            "name":"cli only depends on lint",
             "scope":"cli",
             "kind":"allow",
             "deps":"lint",
             "onbreak":"error"
         },
         {
+            "name":"rules only depend on lint and vendored",
             "scope":"rule",
             "kind":"allow",
             "deps":"lint vendored",
             "onbreak":"error"
         },
         {
+            "name":"lint only depends on vendored",
             "scope":"lint",
             "kind":"allow",
             "deps":"vendored",
             "onbreak":"error"
         },
         {
+            "name":"formatters only depend on lint and vendored",
             "scope":"formatter",
             "kind":"allow",
             "deps":"lint vendored",
             "onbreak":"error"
         },
         {
+            "name":"test can depend on anything (just to test classes)",
             "scope":"test",
             "kind":"allow",
             "deps":"all",

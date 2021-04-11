@@ -34,6 +34,7 @@ const (
 
 // Constraint represents the set of dependency constraints to enforce on a set of modules
 type Constraint struct {
+	Name    string
 	Scope   string
 	Kind    constraintKind
 	Deps    string
@@ -112,6 +113,7 @@ func newREPattern(re string) (rePatter, error) {
 
 // CanonicalConstraint is a plain raw (ie without references to components) dependency constraint
 type CanonicalConstraint struct {
+	name              string
 	scope             string // scope from which this constraint was built
 	componentPatterns []pattern
 	kind              constraintKind
@@ -120,13 +122,12 @@ type CanonicalConstraint struct {
 }
 
 func (c CanonicalConstraint) String() string {
-	return fmt.Sprintf("scope\t%s\ncomps\t%v\nkind\t%v\ndeps\t%v\nlevel\t%v", c.scope, c.componentPatterns, c.kind, c.depPatterns, c.onBreak)
+	return fmt.Sprintf("name:\t%s\nscope:\t%s\ncomps:\t%v\nkind:\t%v\ndeps:\t%v\nlevel:\t%v", c.name, c.scope, c.componentPatterns, c.kind, c.depPatterns, c.onBreak)
 }
 
 // ComponentsForPackage yields all components matching the given package
-// The Boolean return value indicates if there is at least one component
 // Ideally, a package should match a single component but it will be not always the case
-func (p *Policy) ComponentsForPackage(pkg string) ([]string, bool) {
+func (p *Policy) ComponentsForPackage(pkg string) []string {
 	r := []string{}
 	for k, patterns := range p.canonicalComponents {
 		for _, pat := range patterns {
@@ -137,7 +138,7 @@ func (p *Policy) ComponentsForPackage(pkg string) ([]string, bool) {
 		}
 	}
 
-	return r, len(r) > 0
+	return r
 }
 
 // buildCanonicalConstraints populates canonical constraints of a dependency policy
@@ -160,7 +161,7 @@ func (p *Policy) buildCanonicalConstraints() error {
 	}
 
 	for _, c := range p.Constraints {
-		newConstraint := CanonicalConstraint{}
+		newConstraint := CanonicalConstraint{name: c.Name}
 		newConstraint.scope = c.Scope
 		for _, id := range strings.Split(c.Scope, patternSeparator) {
 			if id == "" {
@@ -223,8 +224,8 @@ func buildPatterns(sp []string) ([]pattern, error) {
 func (p Policy) GetApplicableConstraints(pkg string) (constraints []CanonicalConstraint) {
 	constraints = []CanonicalConstraint{}
 	for _, c := range p.canonicalConstraints {
-		for _, p := range c.componentPatterns {
-			if p.match(pkg) {
+		for _, pattern := range c.componentPatterns {
+			if pattern.match(pkg) {
 				constraints = append(constraints, c)
 				break
 			}
@@ -252,7 +253,7 @@ func (p Policy) extractClassesPatterns(compPatterns map[string][]pattern) (map[s
 	r := map[string][]pattern{}
 
 	for _, k := range p.classIds {
-		v, _ := p.Classes[k]
+		v := p.Classes[k]
 		classDef, _ := v.(string) // TODO check type
 		compRefs := strings.Split(classDef, patternSeparator)
 

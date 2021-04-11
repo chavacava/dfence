@@ -7,18 +7,21 @@
     },
     "constraints":[
         {
+            "name":"internal -x-> cli",
             "scope":"internal",
             "kind":"forbid",
             "deps":"cli",
             "onbreak":"error"
         },
         {
+            "name":"cli depends only with internal or vendored",
             "scope":"cli",
             "kind":"allow",
             "deps":"internal vendored",
             "onbreak":"error"
         },
         {
+            "name":"main only depends on cli",
             "scope":"main",
             "kind":"allow",
             "deps":"cli",
