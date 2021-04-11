@@ -1,5 +1,4 @@
 language: go
-go: 1.11.x
+go: 1.15
 script:
-- export GO111MODULE=on
 - make build
