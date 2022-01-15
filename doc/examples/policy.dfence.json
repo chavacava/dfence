@@ -3,7 +3,8 @@
         "cli":"#dfence/cmd.*",
         "main":"#dfence$",
         "internal":"dfence/internal",
-        "vendored":"github.com"
+        "vendored":"github.com",
+        "golang":"golang.org"
     },
     "constraints":[
         {
@@ -14,10 +15,10 @@
             "onbreak":"error"
         },
         {
-            "name":"cli depends only with internal or vendored",
+            "name":"cli depends only with internal, vendored or golang",
             "scope":"cli",
             "kind":"allow",
-            "deps":"internal vendored",
+            "deps":"internal vendored golang",
             "onbreak":"error"
         },
         {
