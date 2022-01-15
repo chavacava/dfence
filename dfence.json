@@ -1,0 +1,32 @@
+{
+    "components":{
+        "cli":"#dfence/cmd.*",
+        "main":"#dfence$",
+        "internal":"dfence/internal",
+        "vendored":"github.com",
+        "golang":"golang.org"
+    },
+    "constraints":[
+        {
+            "name":"internal -x-> cli",
+            "scope":"internal",
+            "kind":"forbid",
+            "deps":"cli",
+            "onbreak":"error"
+        },
+        {
+            "name":"cli depends only with internal, vendored or golang",
+            "scope":"cli",
+            "kind":"allow",
+            "deps":"internal vendored golang",
+            "onbreak":"error"
+        },
+        {
+            "name":"main only depends on cli",
+            "scope":"main",
+            "kind":"allow",
+            "deps":"cli",
+            "onbreak":"error"
+        }
+    ]
+}
