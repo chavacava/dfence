@@ -85,7 +85,7 @@ The `constraints` section contains the dependency constraints to enforce.
 `scope` lists all the components (thus packages patterns) to which the 
 constraint applies.
 
-A constraint can be of one of two `kind`s: `forbid` or `allows`. Meaning that a
+A constraint can be of one of two `kind`s: `forbid` or `allow`. Meaning that a
 a dependency will be forbidden (or accepted) if it matches with one of the package 
 patterns in `deps`.
 The `onbreak` field can take one of two values, `warn` or `error`; it 
