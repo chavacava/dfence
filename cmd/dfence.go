@@ -3,22 +3,24 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
+	"time"
 
-	"github.com/chavacava/dfence/internal/infra"
 	"github.com/chavacava/dfence/internal/policy"
+	"github.com/mattn/go-colorable"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/tools/go/packages"
-
-	"github.com/fatih/color"
 )
 
 func main() {
 	policyFile := flag.String("policy", "dfence.json", "the policy file to enforce")
-	logLevel := flag.String("log", "error", "log level: none, error, warn, info, debug")
+	logLevel := flag.String("log", "error", "log level: none, trace, debug, info, warn, error")
 	mode := flag.String("mode", "check", "run mode (check or info)")
 	flag.Parse()
 
+	// Create a new instance of the logger. You can have any number of instances.
 	logger := buildlogger(*logLevel)
 
 	var err error
@@ -58,7 +60,49 @@ func main() {
 	}
 }
 
-func check(p policy.Policy, pkgs []*packages.Package, logger infra.Logger) error {
+// buildlogger is a function that creates and configures a new instance of a logrus.Logger.
+// It takes a string parameter 'level' which determines the logging level.
+func buildlogger(level string) *logrus.Logger {
+	// Create a new instance of logrus.Logger
+	logger := logrus.New()
+
+	// Set the logger's formatter to logrus.TextFormatter with specific settings
+	logger.SetFormatter(&logrus.TextFormatter{
+		ForceColors:     true,         // Force colored output
+		FullTimestamp:   true,         // Enable full timestamp in logs
+		TimestampFormat: time.RFC3339, // Set the format of the timestamp
+	})
+
+	// Set the logger's output destination to the standard output, with support for color encoding
+	logrus.SetOutput(colorable.NewColorableStdout())
+
+	// Set the logger's level based on the 'level' parameter
+	switch level {
+	case "none":
+		// Discard all log messages
+		logger.Out = io.Discard
+	case "trace":
+		// Log all messages
+		logger.SetLevel(logrus.TraceLevel)
+	case "debug":
+		// Log debug, info, warning, error, fatal and panic level messages
+		logger.SetLevel(logrus.DebugLevel)
+	case "info":
+		// Log info, warning, error, fatal and panic level messages
+		logger.SetLevel(logrus.InfoLevel)
+	case "warn":
+		// Log warning, error, fatal and panic level messages
+		logger.SetLevel(logrus.WarnLevel)
+	case "error":
+		// Log error, fatal and panic level messages
+		logger.SetLevel(logrus.ErrorLevel)
+	}
+
+	// Return the configured logger
+	return logger
+}
+
+func check(p policy.Policy, pkgs []*packages.Package, logger *logrus.Logger) error {
 	checker, err := policy.NewChecker(p, pkgs, logger)
 	if err != nil {
 		logger.Fatalf("Unable to run the checker: %v", err)
@@ -94,7 +138,7 @@ func check(p policy.Policy, pkgs []*packages.Package, logger infra.Logger) error
 	return nil
 }
 
-func info(p policy.Policy, pkgs []*packages.Package, logger infra.Logger) error {
+func info(p policy.Policy, pkgs []*packages.Package, logger *logrus.Logger) error {
 	for _, pkg := range pkgs {
 		pkgName := pkg.PkgPath
 		cs := p.GetApplicableConstraints(pkgName)
@@ -114,36 +158,7 @@ func info(p policy.Policy, pkgs []*packages.Package, logger infra.Logger) error 
 	return nil
 }
 
-func buildlogger(level string) infra.Logger {
-	nop := func(string, ...interface{}) {}
-	debug, info, warn, err := nop, nop, nop, nop
-	switch level {
-	case "none":
-		// do nothing
-	case "debug":
-		debug = buildLoggerFunc("[DEBUG]\t", color.New(color.FgCyan))
-		fallthrough
-	case "info":
-		info = buildLoggerFunc("[INFO]\t", color.New(color.FgGreen))
-		fallthrough
-	case "warn":
-		warn = buildLoggerFunc("[WARN]\t", color.New(color.FgHiYellow))
-		fallthrough
-	default:
-		err = buildLoggerFunc("[ERROR]\t", color.New(color.FgHiRed))
-	}
-
-	fatal := buildLoggerFunc("[FATAL]\t", color.New(color.BgRed))
-	return infra.NewLogger(debug, info, warn, err, fatal)
-}
-
-func buildLoggerFunc(prefix string, c *color.Color) infra.LoggerFunc {
-	return func(msg string, vars ...interface{}) {
-		fmt.Println(c.Sprintf(prefix+msg, vars...))
-	}
-}
-
-func scanPackages(args []string, logger infra.Logger) ([]*packages.Package, error) {
+func scanPackages(args []string, logger *logrus.Logger) ([]*packages.Package, error) {
 	var emptyResult = []*packages.Package{}
 
 	// Load packages and their dependencies.
