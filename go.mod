@@ -1,6 +1,6 @@
 module github.com/chavacava/dfence
 
-go 1.15
+go 1.18
 
 require (
 	github.com/fatih/color v1.16.0
