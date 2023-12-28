@@ -238,7 +238,10 @@ func (p Policy) GetApplicableConstraints(pkg string) (constraints []CanonicalCon
 func (p Policy) extractComponentsPatterns() (map[string][]pattern, error) {
 	r := map[string][]pattern{}
 	for k, v := range p.Components {
-		patterns, _ := v.(string) // TODO check type
+		patterns, ok := v.(string)
+		if !ok {
+			return r, fmt.Errorf("component pattern is not a string. We have: '%s'", v)
+		}
 		var err error
 		r[k], err = buildPatterns(strings.Split(patterns, patternSeparator))
 		if err != nil {
@@ -254,7 +257,10 @@ func (p Policy) extractClassesPatterns(compPatterns map[string][]pattern) (map[s
 
 	for _, k := range p.classIds {
 		v := p.Classes[k]
-		classDef, _ := v.(string) // TODO check type
+		classDef, ok := v.(string)
+		if !ok {
+			return r, fmt.Errorf("class pattern is not a string. We have: '%s'", v)
+		}
 		compRefs := strings.Split(classDef, patternSeparator)
 
 		for _, cr := range compRefs {
